@@ -8,9 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class BookTest {
     @Test
     void shouldCreateBookWhenDataIsValid() {
-        Book book = new Book(1L, "Domain-Driven Design", "Marlon Cardenas", 2026);
+        Book book = Book.createNew( "Domain-Driven Design", "Marlon Cardenas", 2026);
 
-        assertEquals(1L, book.getId());
         assertEquals("Domain-Driven Design", book.getTitle());
         assertEquals("Marlon Cardenas", book.getAuthor());
         assertEquals(2026, book.getPublishedYear());
@@ -19,30 +18,30 @@ class BookTest {
     @Test
     void shouldThrowExceptionWhenTitleIsNull() {
         assertThrows(InvalidBookException.class,
-                () -> new Book(1L, null, "Marlon Cardenas", 2026));
+                () -> Book.createNew(null, "Marlon Cardenas", 2026));
     }
 
     @Test
     void shouldThrowExceptionWhenTitleIsBlank() {
         assertThrows(InvalidBookException.class,
-                () -> new Book(1L, "   ", "Marlon Cardenas", 2026));
+                () -> Book.createNew("   ", "Marlon Cardenas", 2026));
     }
 
     @Test
     void shouldThrowExceptionWhenAuthorIsNull() {
         assertThrows(InvalidBookException.class,
-                () -> new Book(1L, "Domain-Driven Design", null, 2026));
+                () -> Book.createNew("Domain-Driven Design", null, 2026));
     }
 
     @Test
     void shouldThrowExceptionWhenAuthorIsBlank() {
         assertThrows(InvalidBookException.class,
-                () -> new Book(1L, "Domain-Driven Design", "   ", 2026));
+                () -> Book.createNew( "Domain-Driven Design", "   ", 2026));
     }
 
     @Test
     void shouldThrowExceptionWhenPublishedYearIsTooEarly() {
         assertThrows(InvalidBookException.class,
-                () -> new Book(1L, "Some Book", "Some Author", 1200));
+                () -> Book.createNew( "Some Book", "Some Author", 1200));
     }
 }
