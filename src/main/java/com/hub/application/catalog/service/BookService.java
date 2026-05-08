@@ -48,7 +48,8 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
 
         Book updated = Book.existing(command.id(), command.title() != null ? command.title() : existing.getTitle(),
                 command.author() != null ? command.author() : existing.getAuthor(),
-                command.publishedYear() != null ? command.publishedYear() : existing.getPublishedYear(), existing.getOwnerId());
+                command.publishedYear() != null ? command.publishedYear() : existing.getPublishedYear(),
+                existing.getOwnerId().orElse(null));
         return bookRepository.save(updated);
     }
 

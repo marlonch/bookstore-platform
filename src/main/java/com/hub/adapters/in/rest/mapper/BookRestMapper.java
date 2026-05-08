@@ -13,7 +13,7 @@ public class BookRestMapper {
 
     public BookResponse toResponse(Book book) {
         return new BookResponse(book.getId(), book.getTitle(), book.getAuthor(),
-                book.getPublishedYear(), book.getOwnerId());
+                book.getPublishedYear(), book.getOwnerId().orElse(null));
     }
 
     public CreateBookCommand toCreateCommand(CreateBookRequest request) {

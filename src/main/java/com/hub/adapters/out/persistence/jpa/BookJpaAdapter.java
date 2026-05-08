@@ -24,8 +24,8 @@ public class BookJpaAdapter implements BookRepositoryPort {
     @Override
     public Book save(Book book) {
         UserJpaEntity owner = null;
-        if (book.getOwnerId() != null) {
-            owner = userJpaRepository.findById(book.getOwnerId()).orElse(null);
+        if (book.getOwnerId().isPresent()) {
+            owner = userJpaRepository.findById(book.getOwnerId().get()).orElse(null);
         }
         return mapper.toDomain(jpaRepository.save(mapper.toEntity(book, owner)));
     }

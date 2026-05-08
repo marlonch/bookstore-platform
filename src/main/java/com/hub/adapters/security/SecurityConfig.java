@@ -1,6 +1,8 @@
 package com.hub.adapters.security;
 
 import com.hub.adapters.security.jwt.JwtAuthFilter;
+import com.hub.application.auth.port.out.PasswordHasherPort;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,8 +31,13 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) ->
+                        res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/login",
+                        "/swagger-ui/**", "/swagger-ui.html",
+                        "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -46,5 +53,20 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public PasswordHasherPort passwordHasherPort(PasswordEncoder encoder) {
+        return new PasswordHasherPort() {
+            @Override
+            public String encode(String rawPassword) {
+                return encoder.encode(rawPassword);
+            }
+
+            @Override
+            public boolean matches(String rawPassword, String hashedPassword) {
+                return encoder.matches(rawPassword, hashedPassword);
+            }
+        };
     }
 }

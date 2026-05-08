@@ -73,7 +73,7 @@ class BookServiceTest {
 
         Book result = bookService.assignBookToUser(new AssignBookCommand(1L, 5L));
 
-        assertThat(result.getOwnerId()).isEqualTo(5L);
+        assertThat(result.getOwnerId()).contains(5L);
     }
 
     @Test

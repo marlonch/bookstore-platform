@@ -42,6 +42,13 @@ class BookTest {
     @Test
     void shouldThrowExceptionWhenPublishedYearIsTooEarly() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew( "Some Book", "Some Author", 1200));
+                () -> Book.createNew("Some Book", "Some Author", 1200));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenPublishedYearIsInFuture() {
+        int futureYear = java.time.Year.now().getValue() + 1;
+        assertThrows(InvalidBookException.class,
+                () -> Book.createNew("Future Book", "Some Author", futureYear));
     }
 }
