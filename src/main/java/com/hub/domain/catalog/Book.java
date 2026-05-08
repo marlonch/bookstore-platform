@@ -2,12 +2,10 @@ package com.hub.domain.catalog;
 
 import com.hub.domain.catalog.exception.InvalidBookException;
 import lombok.Getter;
-import lombok.Setter;
 
-/**
- * Core domain aggregate representing a book.
- * The ownerId remains null until the book is assigned to a user.
- */
+import java.time.Year;
+import java.util.Optional;
+
 @Getter
 public class Book {
 
@@ -15,7 +13,7 @@ public class Book {
     private final String title;
     private final String author;
     private final Integer publishedYear;
-    private Long ownerId;
+    private Optional<Long> ownerId;
 
     private Book(Long id, String title, String author, Integer publishedYear, Long ownerId) {
         validate(title, author, publishedYear);
@@ -23,7 +21,7 @@ public class Book {
         this.title = title;
         this.author = author;
         this.publishedYear = publishedYear;
-        this.ownerId = ownerId;
+        this.ownerId = Optional.ofNullable(ownerId);
     }
 
     /**
@@ -53,16 +51,19 @@ public class Book {
         if (publishedYear == null || publishedYear < 1400) {
             throw new InvalidBookException("Published year is invalid");
         }
+        if (publishedYear > Year.now().getValue()) {
+            throw new InvalidBookException("Published year cannot be in the future");
+        }
     }
 
     public void assignToOwner(Long ownerId) {
         if (ownerId == null) {
             throw new InvalidBookException("Owner id must not be null");
         }
-        this.ownerId = ownerId;
+        this.ownerId = Optional.of(ownerId);
     }
 
     public void unassignOwner() {
-        this.ownerId = null;
+        this.ownerId = Optional.empty();
     }
 }
