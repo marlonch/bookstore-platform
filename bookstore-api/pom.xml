@@ -5,22 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
-        <relativePath/>
+        <groupId>com.hub</groupId>
+        <artifactId>bookstore-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.hub</groupId>
     <artifactId>hub-api</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>bookstore-api</name>
     <description>bookstore REST API — Hexagonal Architecture</description>
-
-    <properties>
-        <java.version>17</java.version>
-        <jjwt.version>0.12.5</jjwt.version>
-    </properties>
 
     <dependencies>
         <dependency>
