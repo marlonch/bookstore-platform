@@ -1,0 +1,551 @@
+{
+  "info": {
+    "name": "Bookstore API",
+    "_postman_id": "bookstore-api-collection-v1",
+    "description": "Complete REST API collection for the Bookstore Platform, organized by domain: Auth, Books, Users.\n\n**Setup:**\n1. Run `Auth > Login` to obtain the JWT automatically.\n2. The token is saved in `{{token}}` and applied to all authenticated requests via Bearer auth.\n3. `{{book_id}}` and `{{user_id}}` are saved automatically when creating resources.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "local_http_base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "API base URL"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token — set automatically after running Login"
+    },
+    {
+      "key": "admin_username",
+      "value": "admin",
+      "type": "string",
+      "description": "Admin username for login"
+    },
+    {
+      "key": "admin_password",
+      "value": "Admin123!",
+      "type": "string",
+      "description": "Admin password for login"
+    },
+    {
+      "key": "book_id",
+      "value": "1",
+      "type": "string",
+      "description": "Book ID — set automatically after Create Book"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string",
+      "description": "User ID — set automatically after Create User"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const token = pm.collectionVariables.get('token');",
+          "if (!token) {",
+          "    console.warn('[Bookstore API] No active token. Run Auth > Login first.');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints. Login saves the token automatically; Logout clears it.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('[Auth] Token saved:', json.token.substring(0, 30) + '...');",
+                  "    pm.test('Login successful - token received', () => {",
+                  "        pm.expect(json.token).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Login failed', () => {",
+                  "        pm.expect(pm.response.code).to.equal(200);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"{{admin_username}}\",\n    \"password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local_http_base_url}}/api/auth/login",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticates the user and saves the JWT in `{{token}}`.\n\n**Auth:** none (public endpoint)\n**Response 200:** `{ \"token\": \"<jwt>\" }`"
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 204) {",
+                  "    pm.collectionVariables.set('token', '');",
+                  "    console.log('[Auth] Token cleared. Session closed.');",
+                  "    pm.test('Logout successful', () => pm.response.to.have.status(204));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/auth/logout",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Invalidates the current JWT in Redis (status → REVOKED) and clears `{{token}}`.\n\n**Auth:** Bearer token required\n**Response 204:** No Content"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Books",
+      "description": "Book CRUD. Read operations require any authenticated user. Write operations require ADMINISTRATOR role.",
+      "item": [
+        {
+          "name": "Get All Books",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books"]
+            },
+            "description": "Returns all books.\n\n**Auth:** any authenticated user\n**Response 200:** `[ { id, title, author, publishedYear, ownerId } ]`"
+          }
+        },
+        {
+          "name": "Get Book by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has id', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books", "{{book_id}}"]
+            },
+            "description": "Returns a book by ID.\n\n**Auth:** any authenticated user\n**Path param:** `{{book_id}}`\n**Response 200:** `{ id, title, author, publishedYear, ownerId }`\n**Response 404:** book not found"
+          }
+        },
+        {
+          "name": "Create Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('book_id', String(json.id));",
+                  "    console.log('[Books] book_id saved:', json.id);",
+                  "    pm.test('Book created', () => pm.response.to.have.status(201));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Clean Code\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books"]
+            },
+            "description": "Creates a new book and saves its ID in `{{book_id}}`.\n\n**Auth:** ADMINISTRATOR role required\n**Body:** `title` (required, max 300), `author` (required, max 200), `publishedYear` (optional)\n**Response 201:** created book"
+          }
+        },
+        {
+          "name": "Update Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Clean Code - Updated\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books", "{{book_id}}"]
+            },
+            "description": "Updates an existing book.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{book_id}}`\n**Body:** all fields are optional\n**Response 200:** updated book\n**Response 404:** book not found"
+          }
+        },
+        {
+          "name": "Delete Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books", "{{book_id}}"]
+            },
+            "description": "Deletes a book by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{book_id}}`\n**Response 204:** No Content\n**Response 404:** book not found"
+          }
+        },
+        {
+          "name": "Assign Book to User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ownerId updated', () => {",
+                  "    const json = pm.response.json();",
+                  "    const expectedUserId = parseInt(pm.collectionVariables.get('user_id'));",
+                  "    pm.expect(json.ownerId).to.equal(expectedUserId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/books/{{book_id}}/assign/{{user_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "books", "{{book_id}}", "assign", "{{user_id}}"]
+            },
+            "description": "Assigns a book to a user.\n\n**Auth:** ADMINISTRATOR role required\n**Path params:** `{{book_id}}`, `{{user_id}}`\n**Response 200:** book with updated `ownerId`\n**Response 404:** book or user not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User CRUD. All endpoints require ADMINISTRATOR role, except GET /{id}/books which allows the authenticated user to access their own books.",
+      "item": [
+        {
+          "name": "Get All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Returns all users.\n\n**Auth:** ADMINISTRATOR role required\n**Response 200:** `[ { id, username, email, roles, status } ]`"
+          }
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', String(json.id));",
+                  "    console.log('[Users] user_id saved:', json.id);",
+                  "    pm.test('User created', () => pm.response.to.have.status(201));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"roles\": [\"NON_ADMINISTRATOR\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Creates a new user and saves its ID in `{{user_id}}`.\n\n**Auth:** ADMINISTRATOR role required\n**Body:** `username` (3-100 chars), `email` (valid format), `password` (min 8 chars), `roles` (optional)\n**Valid roles:** `ADMINISTRATOR`, `NON_ADMINISTRATOR`\n**Response 201:** created user"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has id', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users", "{{user_id}}"]
+            },
+            "description": "Returns a user by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Response 200:** `{ id, username, email, roles, status }`\n**Response 404:** user not found"
+          }
+        },
+        {
+          "name": "Update User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"john_doe_updated\",\n    \"email\": \"john.updated@example.com\",\n    \"password\": \"newpassword123\",\n    \"roles\": [\"NON_ADMINISTRATOR\"],\n    \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users", "{{user_id}}"]
+            },
+            "description": "Updates an existing user.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Body:** all fields are optional\n**Valid statuses:** `ACTIVE`, `INACTIVE`, `BANNED`\n**Response 200:** updated user\n**Response 404:** user not found"
+          }
+        },
+        {
+          "name": "Delete User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users", "{{user_id}}"]
+            },
+            "description": "Deletes a user by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Response 204:** No Content\n**Response 404:** user not found"
+          }
+        },
+        {
+          "name": "Get User's Books",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local_http_base_url}}/api/users/{{user_id}}/books",
+              "host": ["{{local_http_base_url}}"],
+              "path": ["api", "users", "{{user_id}}", "books"]
+            },
+            "description": "Returns the books assigned to a user.\n\n**Auth:** authenticated user with access rules:\n- ADMINISTRATOR: can list books for any user\n- NON_ADMINISTRATOR: can only list their own books → 403 if attempting another user's books\n\n**Path param:** `{{user_id}}`\n**Response 200:** list of books\n**Response 403:** access denied"
+          }
+        }
+      ]
+    }
+  ]
+}
