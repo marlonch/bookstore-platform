@@ -15,14 +15,12 @@ import com.hub.domain.auth.TokenStatus;
 import com.hub.domain.auth.exception.InactiveUserException;
 import com.hub.domain.auth.exception.InvalidCredentialsException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
 public class AuthService implements LoginUseCase, LogoutUseCase {
 
@@ -30,6 +28,7 @@ public class AuthService implements LoginUseCase, LogoutUseCase {
     private final TokenMetadataRepositoryPort tokenMetadataPort;
     private final PasswordHasherPort passwordHasher;
     private final TokenGeneratorPort tokenGenerator;
+    private final long jwtExpirationHours;
 
     @Override
     public LoginResult login(LoginCommand command) {
@@ -48,7 +47,7 @@ public class AuthService implements LoginUseCase, LogoutUseCase {
 
         String tokenId = UUID.randomUUID().toString();
         Instant now = Instant.now();
-        Instant expiresAt = now.plus(Duration.ofHours(24));
+        Instant expiresAt = now.plus(Duration.ofHours(jwtExpirationHours));
 
         tokenMetadataPort.save(TokenMetadata.builder()
                 .tokenId(tokenId)

@@ -16,13 +16,14 @@ import com.hub.domain.auth.exception.InvalidCredentialsException;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
 import com.hub.domain.identity.UserStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 
@@ -42,8 +43,12 @@ class AuthServiceTest {
     @Mock
     TokenGeneratorPort tokenGenerator;
 
-    @InjectMocks
-    AuthService authService;
+    private AuthService authService;
+
+    @BeforeEach
+    void setUp() {
+        authService = new AuthService(userRepository, tokenMetadataPort, passwordHasher, tokenGenerator, 24L);
+    }
 
     @Test
     void login_withValidCredentials_savesMetadataAndReturnsToken() {
@@ -105,6 +110,30 @@ class AuthServiceTest {
     void login_withNullCommand_throwsNullPointerException() {
         assertThatThrownBy(() -> authService.login(null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void login_tokenTtlMatchesConfiguredExpirationHours() {
+        AuthService serviceWith2Hours = new AuthService(
+                userRepository, tokenMetadataPort, passwordHasher, tokenGenerator, 2L);
+
+        User user = User.builder()
+                .id(1L).username("alice").email("alice@test.com")
+                .passwordHash("hashed").roles(Set.of(Role.ADMINISTRATOR))
+                .status(UserStatus.ACTIVE).build();
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("pass", "hashed")).thenReturn(true);
+        when(tokenGenerator.generate(any(TokenGenerationCommand.class))).thenReturn("jwt-token");
+
+        serviceWith2Hours.login(new LoginCommand("alice", "pass"));
+
+        ArgumentCaptor<TokenMetadata> captor = ArgumentCaptor.forClass(TokenMetadata.class);
+        verify(tokenMetadataPort).save(captor.capture());
+
+        TokenMetadata saved = captor.getValue();
+        long actualSeconds = Duration.between(saved.getIssuedAt(), saved.getExpiresAt()).getSeconds();
+        assertThat(actualSeconds).isEqualTo(Duration.ofHours(2).getSeconds());
     }
 
     @Test
