@@ -26,9 +26,7 @@ public class BookJpaMapper {
     }
 
     public Book toDomain(BookJpaEntity entity) {
-        ISBN isbn = entity.getIsbn() != null
-                ? new ISBN(entity.getIsbn())
-                : new ISBN("0000000000000");
+        ISBN isbn = new ISBN(entity.getIsbn());
         BookStatus status = entity.getStatus() != null
                 ? BookStatus.valueOf(entity.getStatus())
                 : BookStatus.ACTIVE;

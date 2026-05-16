@@ -31,7 +31,7 @@ public class BookJpaEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(length = 13, unique = true)
+    @Column(nullable = false, length = 13, unique = true)
     private String isbn;
 
     @Column(nullable = false, length = 20)

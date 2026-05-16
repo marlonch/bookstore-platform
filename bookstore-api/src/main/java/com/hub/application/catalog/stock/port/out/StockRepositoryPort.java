@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface StockRepositoryPort {
     Stock save(Stock stock);
     Optional<Stock> findByBookId(BookId bookId);
+    Optional<Stock> findByBookIdForUpdate(BookId bookId);
 }

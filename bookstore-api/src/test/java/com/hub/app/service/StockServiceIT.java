@@ -42,6 +42,7 @@ class StockServiceIT {
     @Autowired RestockUseCase restockUseCase;
     @Autowired ReserveStockUseCase reserveStockUseCase;
     @Autowired ReleaseStockUseCase releaseStockUseCase;
+    @Autowired com.hub.application.catalog.book.port.in.DeleteBookUseCase deleteBookUseCase;
 
     private Book bookWithStock(int initialStock) {
         return createBookUseCase.createBook(new CreateBookCommand(
@@ -104,6 +105,14 @@ class StockServiceIT {
     void operations_onNonExistentBook_throwsStockNotFoundException() {
         BookId missing = new BookId(UUID.randomUUID());
         assertThatThrownBy(() -> restockUseCase.restock(new RestockCommand(missing, 5)))
+                .isInstanceOf(StockNotFoundException.class);
+    }
+
+    @Test
+    void deleteBook_removesAssociatedStock() {
+        Book book = bookWithStock(5);
+        deleteBookUseCase.deleteBook(book.getId());
+        assertThatThrownBy(() -> reserveStockUseCase.reserve(new ReserveStockCommand(book.getId(), 1)))
                 .isInstanceOf(StockNotFoundException.class);
     }
 }

@@ -26,7 +26,7 @@ public class StockService implements RestockUseCase, ReserveStockUseCase, Releas
     public Stock restock(RestockCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         return transaction.execute(() -> {
-            Stock stock = stockRepository.findByBookId(command.bookId())
+            Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
                     .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
             stock.restock(command.quantity());
             return stockRepository.save(stock);
@@ -37,7 +37,7 @@ public class StockService implements RestockUseCase, ReserveStockUseCase, Releas
     public Stock reserve(ReserveStockCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         return transaction.execute(() -> {
-            Stock stock = stockRepository.findByBookId(command.bookId())
+            Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
                     .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
             stock.reserve(command.quantity());
             return stockRepository.save(stock);
@@ -48,7 +48,7 @@ public class StockService implements RestockUseCase, ReserveStockUseCase, Releas
     public Stock release(ReleaseStockCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         return transaction.execute(() -> {
-            Stock stock = stockRepository.findByBookId(command.bookId())
+            Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
                     .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
             stock.release(command.quantity());
             return stockRepository.save(stock);

@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -132,5 +134,15 @@ class BookServiceTest {
         when(bookRepository.findByOwnerId(USER_ID)).thenReturn(List.of(
                 Book.existing(BOOK_ID, "DDD", "Eric Evans", 2004, PRICE, ISBN, BookStatus.ACTIVE, USER_ID)));
         assertThat(bookService.listUserBooks(USER_ID)).hasSize(1);
+    }
+
+    @Test
+    void createBook_whenDbViolatesIsbnUniqueness_throwsDuplicateIsbnException() {
+        when(bookRepository.existsByIsbn(ISBN)).thenReturn(false);
+        when(bookRepository.save(any())).thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+        CreateBookCommand cmd = new CreateBookCommand("Clean Code", "Robert Martin", 2008, PRICE, ISBN, 5);
+
+        assertThatThrownBy(() -> bookService.createBook(cmd))
+                .isInstanceOf(DuplicateIsbnException.class);
     }
 }

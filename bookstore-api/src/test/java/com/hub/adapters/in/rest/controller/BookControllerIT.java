@@ -234,6 +234,39 @@ class BookControllerIT {
                 .expectStatus().isEqualTo(409);
     }
 
+    // --- delete book ---
+
+    @Test
+    void deleteBook_asAdmin_returns204() {
+        BookResponse created = createBookAsAdmin("Refactoring", "Martin Fowler", 2018);
+
+        webTestClient.delete()
+                .uri("/api/books/{id}", created.id())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .exchange()
+                .expectStatus().isNoContent();
+    }
+
+    @Test
+    void deleteBook_asAdmin_whenNotFound_returns404() {
+        webTestClient.delete()
+                .uri("/api/books/{id}", UUID.randomUUID())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void deleteBook_asNonAdmin_returns403() {
+        BookResponse created = createBookAsAdmin("Refactoring", "Martin Fowler", 2018);
+
+        webTestClient.delete()
+                .uri("/api/books/{id}", created.id())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
     // --- auth ---
 
     @Test
