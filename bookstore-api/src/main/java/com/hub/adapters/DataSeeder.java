@@ -1,8 +1,8 @@
 package com.hub.adapters;
 
-import com.hub.application.catalog.port.in.CreateBookUseCase;
-import com.hub.application.catalog.port.in.ListBooksUseCase;
-import com.hub.application.catalog.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.in.CreateBookUseCase;
+import com.hub.application.catalog.book.port.in.ListBooksUseCase;
+import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
 import com.hub.domain.catalog.book.ISBN;
 import com.hub.application.identity.port.in.CreateUserUseCase;
 import java.math.BigDecimal;
@@ -63,11 +63,11 @@ public class DataSeeder implements ApplicationRunner {
         }
 
         List<CreateBookCommand> books = List.of(
-                new CreateBookCommand("Clean Code", "Robert C. Martin", 2008, new BigDecimal("29.99"), new ISBN("9780132350884")),
-                new CreateBookCommand("The Pragmatic Programmer", "David Thomas, Andrew Hunt", 1999, new BigDecimal("34.99"), new ISBN("9780135957059")),
-                new CreateBookCommand("Domain-Driven Design", "Eric Evans", 2003, new BigDecimal("44.99"), new ISBN("9780321125217")),
-                new CreateBookCommand("Designing Data-Intensive Applications", "Martin Kleppmann", 2017, new BigDecimal("49.99"), new ISBN("9781449373320")),
-                new CreateBookCommand("Refactoring", "Martin Fowler", 1999, new BigDecimal("39.99"), new ISBN("9780201485677"))
+                new CreateBookCommand("Clean Code", "Robert C. Martin", 2008, new BigDecimal("29.99"), new ISBN("9780132350884"), 10),
+                new CreateBookCommand("The Pragmatic Programmer", "David Thomas, Andrew Hunt", 1999, new BigDecimal("34.99"), new ISBN("9780135957059"), 10),
+                new CreateBookCommand("Domain-Driven Design", "Eric Evans", 2003, new BigDecimal("44.99"), new ISBN("9780321125217"), 10),
+                new CreateBookCommand("Designing Data-Intensive Applications", "Martin Kleppmann", 2017, new BigDecimal("49.99"), new ISBN("9781449373320"), 10),
+                new CreateBookCommand("Refactoring", "Martin Fowler", 1999, new BigDecimal("39.99"), new ISBN("9780201485677"), 10)
         );
 
         books.forEach(cmd -> {

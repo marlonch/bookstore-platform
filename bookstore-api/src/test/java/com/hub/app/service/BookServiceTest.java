@@ -1,10 +1,13 @@
 package com.hub.app.service;
 
-import com.hub.application.catalog.port.in.command.AssignBookCommand;
-import com.hub.application.catalog.port.in.command.CreateBookCommand;
-import com.hub.application.catalog.port.out.BookRepositoryPort;
+import com.hub.application.catalog.book.port.in.command.AssignBookCommand;
+import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.out.BookRepositoryPort;
 import com.hub.application.catalog.service.BookService;
+import com.hub.application.catalog.stock.port.out.StockRepositoryPort;
 import com.hub.application.identity.port.out.UserRepositoryPort;
+import com.hub.application.shared.port.out.TransactionPort;
+import com.hub.domain.catalog.stock.Stock;
 import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
@@ -39,14 +42,24 @@ class BookServiceTest {
     private static final UserId MISSING_USER = new UserId(UUID.fromString("00000000-0000-0000-0000-000000000099"));
 
     @Mock BookRepositoryPort bookRepository;
+    @Mock StockRepositoryPort stockRepository;
     @Mock UserRepositoryPort userRepository;
+    @Mock TransactionPort transaction;
 
     @InjectMocks
     BookService bookService;
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        org.mockito.Mockito.lenient().when(transaction.execute(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(0)).get());
+        org.mockito.Mockito.lenient().when(stockRepository.save(org.mockito.ArgumentMatchers.any(Stock.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+    }
+
     @Test
     void createBook_savesAndReturnsBook() {
-        CreateBookCommand cmd = new CreateBookCommand("Clean Code", "Robert Martin", 2008, PRICE, ISBN);
+        CreateBookCommand cmd = new CreateBookCommand("Clean Code", "Robert Martin", 2008, PRICE, ISBN, 5);
         Book saved = Book.createNew("Clean Code", "Robert Martin", 2008, PRICE, ISBN);
         when(bookRepository.save(any())).thenReturn(saved);
 

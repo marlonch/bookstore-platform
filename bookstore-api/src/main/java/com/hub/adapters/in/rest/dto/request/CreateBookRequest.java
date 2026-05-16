@@ -12,5 +12,6 @@ public record CreateBookRequest(
         @NotBlank @Size(max = 200) String author,
         Integer publishedYear,
         @NotNull @Positive BigDecimal price,
-        @NotBlank String isbn
+        @NotBlank String isbn,
+        @Positive Integer initialStock
 ) {}

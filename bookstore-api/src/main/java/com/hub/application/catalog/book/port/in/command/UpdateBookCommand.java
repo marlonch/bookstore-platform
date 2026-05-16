@@ -1,4 +1,4 @@
-package com.hub.application.catalog.port.in.command;
+package com.hub.application.catalog.book.port.in.command;
 
 import com.hub.domain.catalog.book.BookId;
 

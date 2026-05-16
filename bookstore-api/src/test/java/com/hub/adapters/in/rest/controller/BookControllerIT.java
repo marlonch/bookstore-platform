@@ -182,7 +182,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("Domain-Driven Design", "Eric Evans", 2003, new BigDecimal("44.99"), "9780321125217"))
+                .bodyValue(new CreateBookRequest("Domain-Driven Design", "Eric Evans", 2003, new BigDecimal("44.99"), "9780321125217", null))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(BookResponse.class)
@@ -199,7 +199,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("Title", "Author", 2020, new BigDecimal("9.99"), "9780134190440"))
+                .bodyValue(new CreateBookRequest("Title", "Author", 2020, new BigDecimal("9.99"), "9780134190440", null))
                 .exchange()
                 .expectStatus().isForbidden();
     }
@@ -210,7 +210,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("", "Some Author", 2020, new BigDecimal("9.99"), "9780134190440"))
+                .bodyValue(new CreateBookRequest("", "Some Author", 2020, new BigDecimal("9.99"), "9780134190440", null))
                 .exchange()
                 .expectStatus().isBadRequest();
     }
@@ -282,7 +282,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest(title, author, year, new BigDecimal("29.99"), "9780134190440"))
+                .bodyValue(new CreateBookRequest(title, author, year, new BigDecimal("29.99"), "9780134190440", null))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(BookResponse.class)

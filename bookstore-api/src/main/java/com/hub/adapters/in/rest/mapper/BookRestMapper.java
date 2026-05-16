@@ -3,8 +3,8 @@ package com.hub.adapters.in.rest.mapper;
 import com.hub.adapters.in.rest.dto.request.CreateBookRequest;
 import com.hub.adapters.in.rest.dto.request.UpdateBookRequest;
 import com.hub.adapters.in.rest.dto.response.BookResponse;
-import com.hub.application.catalog.port.in.command.CreateBookCommand;
-import com.hub.application.catalog.port.in.command.UpdateBookCommand;
+import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.in.command.UpdateBookCommand;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.book.ISBN;
@@ -28,9 +28,10 @@ public class BookRestMapper {
     }
 
     public CreateBookCommand toCreateCommand(CreateBookRequest request) {
+        int initialStock = request.initialStock() != null ? request.initialStock() : 1;
         return new CreateBookCommand(
                 request.title(), request.author(), request.publishedYear(),
-                request.price(), new ISBN(request.isbn()));
+                request.price(), new ISBN(request.isbn()), initialStock);
     }
 
     public UpdateBookCommand toUpdateCommand(UUID id, UpdateBookRequest request) {

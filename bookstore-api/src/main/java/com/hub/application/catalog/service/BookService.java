@@ -1,15 +1,18 @@
 package com.hub.application.catalog.service;
 
-import com.hub.application.catalog.port.in.*;
-import com.hub.application.catalog.port.in.command.AssignBookCommand;
-import com.hub.application.catalog.port.in.command.CreateBookCommand;
-import com.hub.application.catalog.port.in.command.UpdateBookCommand;
-import com.hub.application.catalog.port.out.BookRepositoryPort;
+import com.hub.application.catalog.book.port.in.*;
+import com.hub.application.catalog.book.port.in.command.AssignBookCommand;
+import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.in.command.UpdateBookCommand;
+import com.hub.application.catalog.book.port.out.BookRepositoryPort;
+import com.hub.application.catalog.stock.port.out.StockRepositoryPort;
+import com.hub.application.shared.port.out.TransactionPort;
 import com.hub.application.identity.port.out.UserRepositoryPort;
 import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.exception.BookNotFoundException;
+import com.hub.domain.catalog.stock.Stock;
 import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,14 +26,20 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
         DeleteBookUseCase, ListBooksUseCase, AssignBookToUserUseCase, ListUserBooksUseCase {
 
     private final BookRepositoryPort bookRepository;
+    private final StockRepositoryPort stockRepository;
     private final UserRepositoryPort userRepository;
+    private final TransactionPort transaction;
 
     @Override
     public Book createBook(CreateBookCommand command) {
         Objects.requireNonNull(command, "command must not be null");
-        return bookRepository.save(Book.createNew(
-                command.title(), command.author(), command.publishedYear(),
-                command.price(), command.isbn()));
+        return transaction.execute(() -> {
+            Book book = bookRepository.save(Book.createNew(
+                    command.title(), command.author(), command.publishedYear(),
+                    command.price(), command.isbn()));
+            stockRepository.save(Stock.createNew(book.getId(), command.initialStock()));
+            return book;
+        });
     }
 
     @Override

@@ -4,7 +4,7 @@ import com.hub.adapters.out.persistence.jpa.entity.UserJpaEntity;
 import com.hub.adapters.out.persistence.jpa.mapper.BookJpaMapper;
 import com.hub.adapters.out.persistence.jpa.repository.BookJpaRepository;
 import com.hub.adapters.out.persistence.jpa.repository.UserJpaRepository;
-import com.hub.application.catalog.port.out.BookRepositoryPort;
+import com.hub.application.catalog.book.port.out.BookRepositoryPort;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.identity.UserId;

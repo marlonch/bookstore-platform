@@ -7,7 +7,7 @@ import com.hub.adapters.in.rest.dto.response.UserResponse;
 import com.hub.adapters.in.rest.mapper.BookRestMapper;
 import com.hub.adapters.in.rest.mapper.UserRestMapper;
 import com.hub.adapters.security.UserDetailsImpl;
-import com.hub.application.catalog.port.in.ListUserBooksUseCase;
+import com.hub.application.catalog.book.port.in.ListUserBooksUseCase;
 import com.hub.application.identity.port.in.*;
 import com.hub.domain.identity.UserId;
 import jakarta.validation.Valid;

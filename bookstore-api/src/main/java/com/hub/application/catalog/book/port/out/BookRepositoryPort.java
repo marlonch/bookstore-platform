@@ -1,4 +1,4 @@
-package com.hub.application.catalog.port.out;
+package com.hub.application.catalog.book.port.out;
 
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
