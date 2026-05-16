@@ -5,6 +5,7 @@ import com.hub.domain.auth.exception.InactiveUserException;
 import com.hub.domain.auth.exception.InvalidCredentialsException;
 import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.catalog.exception.BookNotFoundException;
+import com.hub.domain.catalog.exception.DuplicateIsbnException;
 import com.hub.domain.identity.exception.DuplicateEmailException;
 import com.hub.domain.identity.exception.DuplicateUsernameException;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler({DuplicateEmailException.class, DuplicateUsernameException.class})
+    @ExceptionHandler({DuplicateEmailException.class, DuplicateUsernameException.class, DuplicateIsbnException.class})
     ProblemDetail handleConflict(DomainException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }

@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface BookJpaRepository extends JpaRepository<BookJpaEntity, UUID> {
 
     List<BookJpaEntity> findByOwner_Id(UUID ownerId);
+
+    boolean existsByIsbn(String isbn);
 }

@@ -215,6 +215,25 @@ class BookControllerIT {
                 .expectStatus().isBadRequest();
     }
 
+    @Test
+    void createBook_withDuplicateIsbn_returns409() {
+        webTestClient.post()
+                .uri("/api/books")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new CreateBookRequest("First Edition", "Author", 2020, new BigDecimal("9.99"), "9780134190440", null))
+                .exchange()
+                .expectStatus().isCreated();
+
+        webTestClient.post()
+                .uri("/api/books")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new CreateBookRequest("Second Edition", "Author", 2021, new BigDecimal("9.99"), "9780134190440", null))
+                .exchange()
+                .expectStatus().isEqualTo(409);
+    }
+
     // --- auth ---
 
     @Test

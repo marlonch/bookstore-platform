@@ -12,6 +12,7 @@ import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.exception.BookNotFoundException;
+import com.hub.domain.catalog.exception.DuplicateIsbnException;
 import com.hub.domain.catalog.stock.Stock;
 import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,9 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
     @Override
     public Book createBook(CreateBookCommand command) {
         Objects.requireNonNull(command, "command must not be null");
+        if (bookRepository.existsByIsbn(command.isbn())) {
+            throw new DuplicateIsbnException("A book with ISBN " + command.isbn().getValue() + " already exists");
+        }
         return transaction.execute(() -> {
             Book book = bookRepository.save(Book.createNew(
                     command.title(), command.author(), command.publishedYear(),

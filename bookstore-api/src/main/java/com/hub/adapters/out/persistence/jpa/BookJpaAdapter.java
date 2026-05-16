@@ -7,6 +7,7 @@ import com.hub.adapters.out.persistence.jpa.repository.UserJpaRepository;
 import com.hub.application.catalog.book.port.out.BookRepositoryPort;
 import com.hub.domain.catalog.book.Book;
 import com.hub.domain.catalog.book.BookId;
+import com.hub.domain.catalog.book.ISBN;
 import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -56,5 +57,10 @@ public class BookJpaAdapter implements BookRepositoryPort {
     @Override
     public boolean existsById(BookId id) {
         return jpaRepository.existsById(id.value());
+    }
+
+    @Override
+    public boolean existsByIsbn(ISBN isbn) {
+        return jpaRepository.existsByIsbn(isbn.getValue());
     }
 }

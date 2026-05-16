@@ -14,6 +14,7 @@ import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.book.BookStatus;
 import com.hub.domain.catalog.book.ISBN;
 import com.hub.domain.catalog.exception.BookNotFoundException;
+import com.hub.domain.catalog.exception.DuplicateIsbnException;
 import com.hub.domain.identity.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,11 +62,21 @@ class BookServiceTest {
     void createBook_savesAndReturnsBook() {
         CreateBookCommand cmd = new CreateBookCommand("Clean Code", "Robert Martin", 2008, PRICE, ISBN, 5);
         Book saved = Book.createNew("Clean Code", "Robert Martin", 2008, PRICE, ISBN);
+        when(bookRepository.existsByIsbn(ISBN)).thenReturn(false);
         when(bookRepository.save(any())).thenReturn(saved);
 
         Book result = bookService.createBook(cmd);
 
         assertThat(result.getTitle()).isEqualTo("Clean Code");
+    }
+
+    @Test
+    void createBook_withDuplicateIsbn_throwsDuplicateIsbnException() {
+        when(bookRepository.existsByIsbn(ISBN)).thenReturn(true);
+        CreateBookCommand cmd = new CreateBookCommand("Clean Code", "Robert Martin", 2008, PRICE, ISBN, 5);
+
+        assertThatThrownBy(() -> bookService.createBook(cmd))
+                .isInstanceOf(DuplicateIsbnException.class);
     }
 
     @Test
