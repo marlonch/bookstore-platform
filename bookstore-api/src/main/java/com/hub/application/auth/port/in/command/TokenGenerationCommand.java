@@ -4,6 +4,7 @@ import com.hub.domain.identity.Role;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Command carrying the data required to generate an authentication token
@@ -16,7 +17,7 @@ import java.util.Set;
  * @param expiresAt token expiration instant
  */
 public record TokenGenerationCommand(
-        Long userId,
+        UUID userId,
         String username,
         String tokenId,
         Set<Role> roles,

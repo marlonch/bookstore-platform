@@ -5,7 +5,9 @@ import com.hub.adapters.out.persistence.jpa.mapper.BookJpaMapper;
 import com.hub.adapters.out.persistence.jpa.repository.BookJpaRepository;
 import com.hub.adapters.out.persistence.jpa.repository.UserJpaRepository;
 import com.hub.application.catalog.port.out.BookRepositoryPort;
-import com.hub.domain.catalog.Book;
+import com.hub.domain.catalog.book.Book;
+import com.hub.domain.catalog.book.BookId;
+import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,14 +27,14 @@ public class BookJpaAdapter implements BookRepositoryPort {
     public Book save(Book book) {
         UserJpaEntity owner = null;
         if (book.getOwnerId().isPresent()) {
-            owner = userJpaRepository.findById(book.getOwnerId().get()).orElse(null);
+            owner = userJpaRepository.findById(book.getOwnerId().get().value()).orElse(null);
         }
         return mapper.toDomain(jpaRepository.save(mapper.toEntity(book, owner)));
     }
 
     @Override
-    public Optional<Book> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
+    public Optional<Book> findById(BookId id) {
+        return jpaRepository.findById(id.value()).map(mapper::toDomain);
     }
 
     @Override
@@ -41,17 +43,18 @@ public class BookJpaAdapter implements BookRepositoryPort {
     }
 
     @Override
-    public List<Book> findByOwnerId(Long ownerId) {
-        return jpaRepository.findByOwnerId(ownerId).stream().map(mapper::toDomain).collect(Collectors.toList());
+    public List<Book> findByOwnerId(UserId ownerId) {
+        return jpaRepository.findByOwner_Id(ownerId.value()).stream()
+                .map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
-    public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+    public void deleteById(BookId id) {
+        jpaRepository.deleteById(id.value());
     }
 
     @Override
-    public boolean existsById(Long id) {
-        return jpaRepository.existsById(id);
+    public boolean existsById(BookId id) {
+        return jpaRepository.existsById(id.value());
     }
 }

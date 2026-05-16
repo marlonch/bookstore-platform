@@ -2,56 +2,44 @@ package com.hub.adapters.out.persistence.jpa.mapper;
 
 import com.hub.adapters.out.persistence.jpa.entity.BookJpaEntity;
 import com.hub.adapters.out.persistence.jpa.entity.UserJpaEntity;
-import com.hub.domain.catalog.Book;
+import com.hub.domain.catalog.book.Book;
+import com.hub.domain.catalog.book.BookId;
+import com.hub.domain.catalog.book.BookStatus;
+import com.hub.domain.catalog.book.ISBN;
+import com.hub.domain.identity.UserId;
 import org.springframework.stereotype.Component;
 
-/**
- * Maps domain {@link Book} aggregates to and from their JPA persistence
- * representation.
- *
- * <p>This mapper isolates persistence conversion logic from the domain model,
- * preventing persistence concerns from leaking into the core business layer.</p>
- */
 @Component
 public class BookJpaMapper {
 
-    /**
-     * Maps a domain {@link Book} aggregate into its JPA persistence representation.
-     *
-     * <p>The owner association is optional because books may exist without
-     * an assigned owner.</p>
-     *
-     *  @param book the domain book to convert
-     *  @param owner the JPA owner entity associated with the book, or {@code null} if the book has no owner
-     *  @return the JPA entity representation of the given book
-     */
     public BookJpaEntity toEntity(Book book, UserJpaEntity owner) {
         return BookJpaEntity.builder()
-                .id(book.getId())
+                .id(book.getId().value())
                 .title(book.getTitle())
                 .author(book.getAuthor())
                 .publishedYear(book.getPublishedYear())
+                .price(book.getPrice())
+                .isbn(book.getIsbn().getValue())
+                .status(book.getStatus().name())
                 .owner(owner)
                 .build();
     }
 
-    /**
-     * Maps a JPA {@link BookJpaEntity} into the domain {@link Book} aggregate.
-     *
-     * <p>If the persistence entity has an associated owner, the owner's identifier
-     * is propagated to the domain model; otherwise, the owner identifier is
-     * {@code null}.</p>
-     *
-     * @param entity the persistence entity to convert
-     * @return the domain aggregate created from the persistence entity
-     */
     public Book toDomain(BookJpaEntity entity) {
+        ISBN isbn = entity.getIsbn() != null
+                ? new ISBN(entity.getIsbn())
+                : new ISBN("0000000000000");
+        BookStatus status = entity.getStatus() != null
+                ? BookStatus.valueOf(entity.getStatus())
+                : BookStatus.ACTIVE;
         return Book.existing(
-                entity.getId(),
+                new BookId(entity.getId()),
                 entity.getTitle(),
                 entity.getAuthor(),
                 entity.getPublishedYear(),
-                entity.getOwner() != null ? entity.getOwner().getId() : null);
-
+                entity.getPrice(),
+                isbn,
+                status,
+                entity.getOwner() != null ? new UserId(entity.getOwner().getId()) : null);
     }
 }

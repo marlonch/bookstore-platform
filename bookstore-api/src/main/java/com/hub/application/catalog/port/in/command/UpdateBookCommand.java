@@ -1,3 +1,7 @@
 package com.hub.application.catalog.port.in.command;
 
-public record UpdateBookCommand(Long id, String title, String author, Integer publishedYear) {}
+import com.hub.domain.catalog.book.BookId;
+
+import java.math.BigDecimal;
+
+public record UpdateBookCommand(BookId id, String title, String author, Integer publishedYear, BigDecimal price) {}

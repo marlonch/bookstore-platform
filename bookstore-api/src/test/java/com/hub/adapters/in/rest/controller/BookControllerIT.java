@@ -11,6 +11,7 @@ import com.hub.domain.auth.TokenMetadata;
 import com.hub.domain.auth.TokenStatus;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import com.hub.domain.identity.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,19 +26,25 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-// H2 state isolation: each test starts with a clean schema because ddl-auto=create-drop runs per context
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class BookControllerIT {
 
@@ -56,14 +63,18 @@ class BookControllerIT {
     @Autowired
     private PasswordHasherPort passwordHasherPort;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @MockitoBean
     private TokenMetadataRepositoryPort tokenMetadataRepositoryPort;
 
     private String userToken;
     private String adminToken;
+    private String userJti;
+    private String adminJti;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         webTestClient = WebTestClient.bindToServer()
                 .baseUrl("http://localhost:" + port)
                 .build();
@@ -72,17 +83,8 @@ class BookControllerIT {
         doNothing().when(tokenMetadataRepositoryPort).save(any());
         doNothing().when(tokenMetadataRepositoryPort).revokeToken(anyString());
 
-        when(tokenMetadataRepositoryPort.findByTokenId(anyString()))
-                .thenReturn(Optional.of(
-                        TokenMetadata.builder()
-                                .tokenId("test-token-id")
-                                .userId(1L)
-                                .issuedAt(Instant.now())
-                                .expiresAt(Instant.now().plusSeconds(3600))
-                                .status(TokenStatus.ACTIVE)
-                                .build()));
-
         userJpaAdapter.save(User.builder()
+                .id(UserId.generate())
                 .username(USER_USERNAME)
                 .email("user@hub.com")
                 .passwordHash(passwordHasherPort.encode(RAW_PASSWORD))
@@ -91,6 +93,7 @@ class BookControllerIT {
                 .build());
 
         userJpaAdapter.save(User.builder()
+                .id(UserId.generate())
                 .username(ADMIN_USERNAME)
                 .email("admin@hub.com")
                 .passwordHash(passwordHasherPort.encode(RAW_PASSWORD))
@@ -100,6 +103,14 @@ class BookControllerIT {
 
         userToken = login(USER_USERNAME);
         adminToken = login(ADMIN_USERNAME);
+
+        userJti = extractJti(userToken);
+        adminJti = extractJti(adminToken);
+
+        when(tokenMetadataRepositoryPort.findByTokenId(eq(userJti)))
+                .thenReturn(Optional.of(activeMetadata(userJti)));
+        when(tokenMetadataRepositoryPort.findByTokenId(eq(adminJti)))
+                .thenReturn(Optional.of(activeMetadata(adminJti)));
     }
 
     private String login(String username) {
@@ -157,7 +168,7 @@ class BookControllerIT {
     @Test
     void getBook_byId_whenNotFound_returns404() {
         webTestClient.get()
-                .uri("/api/books/{id}", 9999L)
+                .uri("/api/books/{id}", UUID.randomUUID())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
                 .exchange()
                 .expectStatus().isNotFound();
@@ -171,7 +182,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("Domain-Driven Design", "Eric Evans", 2003))
+                .bodyValue(new CreateBookRequest("Domain-Driven Design", "Eric Evans", 2003, new BigDecimal("44.99"), "9780321125217"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(BookResponse.class)
@@ -188,7 +199,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("Title", "Author", 2020))
+                .bodyValue(new CreateBookRequest("Title", "Author", 2020, new BigDecimal("9.99"), "9780134190440"))
                 .exchange()
                 .expectStatus().isForbidden();
     }
@@ -199,7 +210,7 @@ class BookControllerIT {
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest("", "Some Author", 2020))
+                .bodyValue(new CreateBookRequest("", "Some Author", 2020, new BigDecimal("9.99"), "9780134190440"))
                 .exchange()
                 .expectStatus().isBadRequest();
     }
@@ -218,26 +229,23 @@ class BookControllerIT {
 
     @Test
     void logout_asAuthenticated_returns204_thenSubsequentRequest_returns401() {
-        // Confirm the token works before logout
         webTestClient.get()
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
                 .exchange()
                 .expectStatus().isOk();
 
-        // Logout
         webTestClient.post()
                 .uri("/api/auth/logout")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
                 .exchange()
                 .expectStatus().isNoContent();
 
-        // Simulate Redis now returning REVOKED for the same token id
-        when(tokenMetadataRepositoryPort.findByTokenId(anyString()))
+        when(tokenMetadataRepositoryPort.findByTokenId(eq(userJti)))
                 .thenReturn(Optional.of(
                         TokenMetadata.builder()
-                                .tokenId("test-token-id")
-                                .userId(1L)
+                                .tokenId(userJti)
+                                .userId(UUID.randomUUID())
                                 .issuedAt(Instant.now())
                                 .expiresAt(Instant.now().plusSeconds(3600))
                                 .status(TokenStatus.REVOKED)
@@ -252,12 +260,29 @@ class BookControllerIT {
 
     // --- helpers ---
 
+    private String extractJti(String jwt) throws Exception {
+        String payloadBase64 = jwt.split("\\.")[1];
+        int padding = (4 - payloadBase64.length() % 4) % 4;
+        byte[] decoded = Base64.getUrlDecoder().decode(payloadBase64 + "=".repeat(padding));
+        return objectMapper.readTree(decoded).get("jti").asText();
+    }
+
+    private TokenMetadata activeMetadata(String tokenId) {
+        return TokenMetadata.builder()
+                .tokenId(tokenId)
+                .userId(UUID.randomUUID())
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .status(TokenStatus.ACTIVE)
+                .build();
+    }
+
     private BookResponse createBookAsAdmin(String title, String author, int year) {
         return webTestClient.post()
                 .uri("/api/books")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new CreateBookRequest(title, author, year))
+                .bodyValue(new CreateBookRequest(title, author, year, new BigDecimal("29.99"), "9780134190440"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(BookResponse.class)

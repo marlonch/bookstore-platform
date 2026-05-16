@@ -9,6 +9,7 @@ import com.hub.adapters.in.rest.mapper.UserRestMapper;
 import com.hub.adapters.security.UserDetailsImpl;
 import com.hub.application.catalog.port.in.ListUserBooksUseCase;
 import com.hub.application.identity.port.in.*;
+import com.hub.domain.identity.UserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -51,13 +53,13 @@ public class UserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userMapper.toResponse(getUserUseCase.getUser(id)));
+    public ResponseEntity<UserResponse> getUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(userMapper.toResponse(getUserUseCase.getUser(new UserId(id))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id,
             @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userMapper.toResponse(
                 updateUserUseCase.updateUser(userMapper.toUpdateCommand(id, request))));
@@ -65,18 +67,14 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        deleteUserUseCase.deleteUser(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        deleteUserUseCase.deleteUser(new UserId(id));
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Administrators can list books for any user.
-     * NonAdministrators can only list their own books.
-     */
     @GetMapping("/{id}/books")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<BookResponse>> getUserBooks(@PathVariable Long id,
+    public ResponseEntity<List<BookResponse>> getUserBooks(@PathVariable UUID id,
             Authentication authentication) {
         UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
         boolean isAdmin = authentication.getAuthorities().stream()
@@ -86,7 +84,7 @@ public class UserController {
             throw new AccessDeniedException("Cannot access books of another user");
         }
 
-        return ResponseEntity.ok(listUserBooksUseCase.listUserBooks(id).stream()
+        return ResponseEntity.ok(listUserBooksUseCase.listUserBooks(new UserId(id)).stream()
                 .map(bookMapper::toResponse).collect(Collectors.toList()));
     }
 }
