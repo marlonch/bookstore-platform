@@ -1,0 +1,12 @@
+services:
+  bookstore-api:
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    ports:
+      - "5005:5005"
+
+  bookstore-order-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
+    ports:
+      - "5006:5006"
