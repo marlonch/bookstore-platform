@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public record CreateBookRequest(
         @NotBlank @Size(max = 300) String title,
         @NotBlank @Size(max = 200) String author,
-        Integer publishedYear,
+        @NotNull Integer publishedYear,
         @NotNull @Positive BigDecimal price,
         @NotBlank String isbn,
         @Positive Integer initialStock

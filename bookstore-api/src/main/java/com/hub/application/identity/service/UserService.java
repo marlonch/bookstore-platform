@@ -67,6 +67,15 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
         User existing = userRepository.findById(command.id())
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + command.id()));
 
+        if (command.username() != null && !command.username().equals(existing.getUsername())
+                && userRepository.existsByUsername(command.username())) {
+            throw new DuplicateUsernameException("Username already in use: " + command.username());
+        }
+        if (command.email() != null && !command.email().equals(existing.getEmail())
+                && userRepository.existsByEmail(command.email())) {
+            throw new DuplicateEmailException("Email already in use: " + command.email());
+        }
+
         String newHash = (command.rawPassword() != null)
                 ? passwordHasher.encode(command.rawPassword())
                 : existing.getPasswordHash();

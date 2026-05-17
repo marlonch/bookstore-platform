@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -124,6 +125,42 @@ class UserServiceTest {
         userService.updateUser(cmd);
 
         verify(tokenMetadataPort).revokeAllUserTokens(USER_ID.value());
+    }
+
+    @Test
+    void updateUser_withDuplicateUsername_throwsDuplicateUsernameException() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByUsername("bob")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, "bob", null, null, null, null)))
+                .isInstanceOf(DuplicateUsernameException.class);
+    }
+
+    @Test
+    void updateUser_withDuplicateEmail_throwsDuplicateEmailException() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmail("taken@test.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, null, "taken@test.com", null, null, null)))
+                .isInstanceOf(DuplicateEmailException.class);
+    }
+
+    @Test
+    void updateUser_keepingSameUsername_doesNotThrow() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatCode(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, "alice", null, null, null, null)))
+                .doesNotThrowAnyException();
     }
 
     @Test

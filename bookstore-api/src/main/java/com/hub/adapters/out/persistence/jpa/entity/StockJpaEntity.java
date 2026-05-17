@@ -24,5 +24,6 @@ public class StockJpaEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private BookJpaEntity book;
 
+    @Column(nullable = false)
     private Integer quantity;
 }

@@ -234,6 +234,30 @@ class BookControllerIT {
                 .expectStatus().isEqualTo(409);
     }
 
+    // --- input validation ---
+
+    @Test
+    void createBook_withFuturePublishedYear_returns400() {
+        webTestClient.post()
+                .uri("/api/books")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new CreateBookRequest("Title", "Author", 9999, new BigDecimal("9.99"), "9780134190440", null))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void createBook_withNullPublishedYear_returns400() {
+        webTestClient.post()
+                .uri("/api/books")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new CreateBookRequest("Title", "Author", null, new BigDecimal("9.99"), "9780134190440", null))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
     // --- delete book ---
 
     @Test
