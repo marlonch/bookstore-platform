@@ -9,6 +9,7 @@ import com.hub.application.identity.service.UserService;
 import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import com.hub.domain.identity.UserStatus;
 import com.hub.domain.identity.exception.DuplicateEmailException;
 import com.hub.domain.identity.exception.DuplicateUsernameException;
@@ -21,20 +22,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @Mock
-    UserRepositoryPort userRepository;
-    @Mock
-    PasswordHasherPort passwordHasher;
-    @Mock
-    TokenMetadataRepositoryPort tokenMetadataPort;
+    private static final UserId USER_ID = new UserId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    private static final UserId USER_ID_2 = new UserId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+    private static final UserId MISSING_ID = new UserId(UUID.fromString("00000000-0000-0000-0000-000000000099"));
+
+    @Mock UserRepositoryPort userRepository;
+    @Mock PasswordHasherPort passwordHasher;
+    @Mock TokenMetadataRepositoryPort tokenMetadataPort;
 
     @InjectMocks
     UserService userService;
@@ -47,14 +51,14 @@ class UserServiceTest {
         when(userRepository.existsByUsername("bob")).thenReturn(false);
         when(passwordHasher.encode("secret")).thenReturn("bcrypt-hash");
 
-        User saved = User.builder().id(2L).username("bob").email("bob@test.com")
+        User saved = User.builder().id(USER_ID).username("bob").email("bob@test.com")
                 .passwordHash("bcrypt-hash").roles(Set.of(Role.NON_ADMINISTRATOR))
                 .status(UserStatus.ACTIVE).build();
         when(userRepository.save(any(User.class))).thenReturn(saved);
 
         User result = userService.createUser(cmd);
 
-        assertThat(result.getId()).isEqualTo(2L);
+        assertThat(result.getId()).isEqualTo(USER_ID);
         assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
         verify(userRepository).save(argThat(u -> u.getPasswordHash().equals("bcrypt-hash")));
     }
@@ -80,54 +84,90 @@ class UserServiceTest {
 
     @Test
     void getUser_withExistingId_returnsUser() {
-        User user = User.builder().id(1L).username("alice").build();
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        User user = User.builder().id(USER_ID).username("alice").build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
 
-        assertThat(userService.getUser(1L).getUsername()).isEqualTo("alice");
+        assertThat(userService.getUser(USER_ID).getUsername()).isEqualTo("alice");
     }
 
     @Test
     void getUser_withMissingId_throwsUserNotFoundException() {
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> userService.getUser(99L)).isInstanceOf(UserNotFoundException.class);
+        when(userRepository.findById(MISSING_ID)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> userService.getUser(MISSING_ID)).isInstanceOf(UserNotFoundException.class);
     }
 
     @Test
     void deleteUser_withExistingId_revokesTokensAndDeletes() {
-        when(userRepository.existsById(3L)).thenReturn(true);
+        when(userRepository.existsById(USER_ID)).thenReturn(true);
 
-        userService.deleteUser(3L);
+        userService.deleteUser(USER_ID);
 
-        verify(tokenMetadataPort).revokeAllUserTokens(3L);
-        verify(userRepository).deleteById(3L);
+        verify(tokenMetadataPort).revokeAllUserTokens(USER_ID.value());
+        verify(userRepository).deleteById(USER_ID);
     }
 
     @Test
     void deleteUser_withMissingId_throwsUserNotFoundException() {
-        when(userRepository.existsById(99L)).thenReturn(false);
-        assertThatThrownBy(() -> userService.deleteUser(99L)).isInstanceOf(UserNotFoundException.class);
+        when(userRepository.existsById(MISSING_ID)).thenReturn(false);
+        assertThatThrownBy(() -> userService.deleteUser(MISSING_ID)).isInstanceOf(UserNotFoundException.class);
     }
 
     @Test
     void updateUser_disablingUser_revokesAllTokens() {
-        User existing = User.builder().id(1L).username("alice").email("a@test.com")
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
                 .passwordHash("old-hash").roles(Set.of(Role.NON_ADMINISTRATOR))
                 .status(UserStatus.ACTIVE).build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
         when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateUserCommand cmd = new UpdateUserCommand(1L, null, null, null, null, UserStatus.INACTIVE);
+        UpdateUserCommand cmd = new UpdateUserCommand(USER_ID, null, null, null, null, UserStatus.INACTIVE);
         userService.updateUser(cmd);
 
-        verify(tokenMetadataPort).revokeAllUserTokens(1L);
+        verify(tokenMetadataPort).revokeAllUserTokens(USER_ID.value());
+    }
+
+    @Test
+    void updateUser_withDuplicateUsername_throwsDuplicateUsernameException() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByUsername("bob")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, "bob", null, null, null, null)))
+                .isInstanceOf(DuplicateUsernameException.class);
+    }
+
+    @Test
+    void updateUser_withDuplicateEmail_throwsDuplicateEmailException() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmail("taken@test.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, null, "taken@test.com", null, null, null)))
+                .isInstanceOf(DuplicateEmailException.class);
+    }
+
+    @Test
+    void updateUser_keepingSameUsername_doesNotThrow() {
+        User existing = User.builder().id(USER_ID).username("alice").email("a@test.com")
+                .passwordHash("hash").roles(Set.of(Role.NON_ADMINISTRATOR)).status(UserStatus.ACTIVE).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existing));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatCode(() -> userService.updateUser(
+                new UpdateUserCommand(USER_ID, "alice", null, null, null, null)))
+                .doesNotThrowAnyException();
     }
 
     @Test
     void listUsers_returnsAll() {
         when(userRepository.findAll()).thenReturn(List.of(
-                User.builder().id(1L).username("a").build(),
-                User.builder().id(2L).username("b").build()
+                User.builder().id(USER_ID).username("a").build(),
+                User.builder().id(USER_ID_2).username("b").build()
         ));
         assertThat(userService.listUsers()).hasSize(2);
     }

@@ -7,7 +7,6 @@ import com.hub.application.auth.port.out.PasswordHasherPort;
 import com.hub.application.auth.port.out.TokenGeneratorPort;
 import com.hub.application.auth.port.out.TokenMetadataRepositoryPort;
 import com.hub.application.auth.service.AuthService;
-
 import com.hub.application.identity.port.out.UserRepositoryPort;
 import com.hub.domain.auth.TokenMetadata;
 import com.hub.domain.auth.TokenStatus;
@@ -15,6 +14,7 @@ import com.hub.domain.auth.exception.InactiveUserException;
 import com.hub.domain.auth.exception.InvalidCredentialsException;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import com.hub.domain.identity.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,14 +35,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock
-    UserRepositoryPort userRepository;
-    @Mock
-    TokenMetadataRepositoryPort tokenMetadataPort;
-    @Mock
-    PasswordHasherPort passwordHasher;
-    @Mock
-    TokenGeneratorPort tokenGenerator;
+    private static final UserId USER_ID = new UserId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+
+    @Mock UserRepositoryPort userRepository;
+    @Mock TokenMetadataRepositoryPort tokenMetadataPort;
+    @Mock PasswordHasherPort passwordHasher;
+    @Mock TokenGeneratorPort tokenGenerator;
 
     private AuthService authService;
 
@@ -53,7 +52,7 @@ class AuthServiceTest {
     @Test
     void login_withValidCredentials_savesMetadataAndReturnsToken() {
         User user = User.builder()
-                .id(1L).username("alice").email("alice@test.com")
+                .id(USER_ID).username("alice").email("alice@test.com")
                 .passwordHash("hashed").roles(Set.of(Role.ADMINISTRATOR))
                 .status(UserStatus.ACTIVE).build();
 
@@ -64,19 +63,19 @@ class AuthServiceTest {
         LoginResult result = authService.login(new LoginCommand("alice", "pass"));
 
         assertThat(result.token()).isEqualTo("jwt-token");
-        assertThat(result.userId()).isEqualTo(1L);
+        assertThat(result.userId()).isEqualTo(USER_ID.value());
         assertThat(result.roles()).contains(Role.ADMINISTRATOR);
 
         ArgumentCaptor<TokenMetadata> captor = ArgumentCaptor.forClass(TokenMetadata.class);
         verify(tokenMetadataPort).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(TokenStatus.ACTIVE);
-        assertThat(captor.getValue().getUserId()).isEqualTo(1L);
+        assertThat(captor.getValue().getUserId()).isEqualTo(USER_ID.value());
     }
 
     @Test
     void login_withWrongPassword_throwsInvalidCredentialsException() {
         User user = User.builder()
-                .id(1L).username("alice").passwordHash("hashed")
+                .id(USER_ID).username("alice").passwordHash("hashed")
                 .status(UserStatus.ACTIVE).build();
 
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
@@ -97,7 +96,7 @@ class AuthServiceTest {
     @Test
     void login_withInactiveUser_throwsInactiveUserException() {
         User user = User.builder()
-                .id(1L).username("alice").passwordHash("hashed")
+                .id(USER_ID).username("alice").passwordHash("hashed")
                 .status(UserStatus.INACTIVE).build();
 
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
@@ -118,7 +117,7 @@ class AuthServiceTest {
                 userRepository, tokenMetadataPort, passwordHasher, tokenGenerator, 2L);
 
         User user = User.builder()
-                .id(1L).username("alice").email("alice@test.com")
+                .id(USER_ID).username("alice").email("alice@test.com")
                 .passwordHash("hashed").roles(Set.of(Role.ADMINISTRATOR))
                 .status(UserStatus.ACTIVE).build();
 

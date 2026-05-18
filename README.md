@@ -24,7 +24,9 @@ Three concentric rings with a strict dependency rule: outer rings depend on inne
 │    Output ports (repository / token contracts)   │
 ├──────────────────────────────────────────────────┤
 │           DOMAIN  (inner ring)                   │
-│  Book  │  User  │  TokenMetadata  │  Exceptions  │
+│  Book  │  Stock  │  User  │  TokenMetadata  │    │
+│  BookId · UserId · ISBN (value objects)          │
+│  BookStatus · Exceptions                         │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -69,8 +71,17 @@ Once all services are healthy, the API is available at:
 | Username | Password | Role |
 |---|---|---|
 | `admin` | `Admin123!` | ADMINISTRATOR |
+| `user` | `User123!` | NON_ADMINISTRATOR |
 
 5 sample books are also seeded. Seeding is idempotent — restarting the stack never duplicates data.
+
+**Remote debugging:**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
+```
+
+Attaches JDWP agents to both services with `suspend=n` (services start immediately without waiting for a debugger). Connect your IDE to `localhost:5005` (bookstore-api) or `localhost:5006` (bookstore-order-service).
 
 ---
 
@@ -179,8 +190,11 @@ JWTs are stateless by design, but logout requires stateful revocation. Redis giv
 **Why store `tokenId` (UUID) as the JWT `jti` claim instead of the full JWT?**
 The `jti` is a small, opaque UUID stored as the Redis key. Avoids storing large JWT strings and aligns with RFC 7519's intent for `jti` as a unique token identifier.
 
-**Why `Optional<Long>` for `Book.ownerId`?**
-A bare `null` field is invisible at the call site — callers can forget to null-check. `Optional<Long>` makes the absence of an owner an explicit, compile-time-visible fact.
+**Why `BookId` and `UserId` instead of plain `Long`?**
+Typed value objects wrapping UUID v7 prevent entire classes of bugs where IDs of different entities are mixed up. `findById(BookId)` cannot accidentally accept a `UserId` — the compiler rejects it. UUID v7 is time-ordered, which keeps index locality in MySQL while being globally unique without a centralized sequence.
+
+**Why `Optional<UserId>` for `Book.ownerId`?**
+A bare `null` field is invisible at the call site — callers can forget to null-check. `Optional<UserId>` makes the absence of an owner an explicit, compile-time-visible fact. The typed wrapper also means passing a `BookId` where an owner ID is expected is a compile error, not a runtime surprise.
 
 **Why H2 in integration tests instead of Testcontainers?**
 H2's `MODE=MySQL` is fast and requires no Docker daemon in CI. The trade-off is reduced production parity. A natural next step would be replacing H2 with Testcontainers for true MySQL fidelity.
@@ -194,13 +208,18 @@ bookstore-platform/
 ├── bookstore-api/               ← Spring Boot application
 │   └── src/main/java/com/hub/
 │       ├── domain/              ← Pure Java: models, exceptions (no Spring)
-│       │   ├── catalog/         ← Book aggregate
-│       │   ├── identity/        ← User, Role, UserStatus
+│       │   ├── catalog/
+│       │   │   ├── book/        ← Book aggregate, BookId, ISBN, BookStatus
+│       │   │   └── stock/       ← Stock aggregate
+│       │   ├── identity/        ← User, UserId, Role, UserStatus
 │       │   └── auth/            ← TokenMetadata, TokenStatus
 │       ├── application/         ← Use-case interfaces + services (no Spring)
 │       │   ├── catalog/
+│       │   │   ├── book/        ← book use-case ports + commands
+│       │   │   └── stock/       ← stock use-case ports + commands
 │       │   ├── identity/
-│       │   └── auth/
+│       │   ├── auth/
+│       │   └── shared/          ← TransactionPort (cross-cutting output port)
 │       └── adapters/            ← Spring-aware implementations
 │           ├── in/rest/         ← Controllers, DTOs, GlobalExceptionHandler
 │           ├── out/persistence/ ← JPA entities, repositories, mappers

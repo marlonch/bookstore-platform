@@ -1,15 +1,22 @@
 package com.hub.application.catalog.service;
 
-import com.hub.application.catalog.port.in.*;
-import com.hub.application.catalog.port.in.command.AssignBookCommand;
-import com.hub.application.catalog.port.in.command.CreateBookCommand;
-import com.hub.application.catalog.port.in.command.UpdateBookCommand;
-import com.hub.application.catalog.port.out.BookRepositoryPort;
+import com.hub.application.catalog.book.port.in.*;
+import com.hub.application.catalog.book.port.in.command.AssignBookCommand;
+import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.in.command.UpdateBookCommand;
+import com.hub.application.catalog.book.port.out.BookRepositoryPort;
+import com.hub.application.catalog.stock.port.out.StockRepositoryPort;
+import com.hub.application.shared.port.out.TransactionPort;
 import com.hub.application.identity.port.out.UserRepositoryPort;
 import com.hub.domain.auth.exception.UserNotFoundException;
-import com.hub.domain.catalog.Book;
+import com.hub.domain.catalog.book.Book;
+import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.exception.BookNotFoundException;
+import com.hub.domain.catalog.exception.DuplicateIsbnException;
+import com.hub.domain.catalog.stock.Stock;
+import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,20 +28,31 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
         DeleteBookUseCase, ListBooksUseCase, AssignBookToUserUseCase, ListUserBooksUseCase {
 
     private final BookRepositoryPort bookRepository;
+    private final StockRepositoryPort stockRepository;
     private final UserRepositoryPort userRepository;
+    private final TransactionPort transaction;
 
     @Override
     public Book createBook(CreateBookCommand command) {
         Objects.requireNonNull(command, "command must not be null");
-
-        return bookRepository.save(Book.createNew(
-                command.title(),
-                command.author(),
-                command.publishedYear()));
+        if (bookRepository.existsByIsbn(command.isbn())) {
+            throw new DuplicateIsbnException("A book with ISBN " + command.isbn().getValue() + " already exists");
+        }
+        try {
+            return transaction.execute(() -> {
+                Book book = bookRepository.save(Book.createNew(
+                        command.title(), command.author(), command.publishedYear(),
+                        command.price(), command.isbn()));
+                stockRepository.save(Stock.createNew(book.getId(), command.initialStock()));
+                return book;
+            });
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateIsbnException("A book with ISBN " + command.isbn().getValue() + " already exists");
+        }
     }
 
     @Override
-    public Book getBook(Long bookId) {
+    public Book getBook(BookId bookId) {
         Objects.requireNonNull(bookId, "bookId must not be null");
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new BookNotFoundException("Book not found: " + bookId));
@@ -46,15 +64,19 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
         Book existing = bookRepository.findById(command.id())
                 .orElseThrow(() -> new BookNotFoundException("Book not found: " + command.id()));
 
-        Book updated = Book.existing(command.id(), command.title() != null ? command.title() : existing.getTitle(),
+        return bookRepository.save(Book.existing(
+                command.id(),
+                command.title() != null ? command.title() : existing.getTitle(),
                 command.author() != null ? command.author() : existing.getAuthor(),
                 command.publishedYear() != null ? command.publishedYear() : existing.getPublishedYear(),
-                existing.getOwnerId().orElse(null));
-        return bookRepository.save(updated);
+                command.price() != null ? command.price() : existing.getPrice(),
+                existing.getIsbn(),
+                existing.getStatus(),
+                existing.getOwnerId().orElse(null)));
     }
 
     @Override
-    public void deleteBook(Long bookId) {
+    public void deleteBook(BookId bookId) {
         Objects.requireNonNull(bookId, "bookId must not be null");
         if (!bookRepository.existsById(bookId)) {
             throw new BookNotFoundException("Book not found: " + bookId);
@@ -78,16 +100,12 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
         }
 
         return bookRepository.save(Book.existing(
-                book.getId(),
-                book.getTitle(),
-                book.getAuthor(),
-                book.getPublishedYear(),
-                command.userId())
-                );
+                book.getId(), book.getTitle(), book.getAuthor(), book.getPublishedYear(),
+                book.getPrice(), book.getIsbn(), book.getStatus(), command.userId()));
     }
 
     @Override
-    public List<Book> listUserBooks(Long userId) {
+    public List<Book> listUserBooks(UserId userId) {
         Objects.requireNonNull(userId, "userId must not be null");
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException("User not found: " + userId);

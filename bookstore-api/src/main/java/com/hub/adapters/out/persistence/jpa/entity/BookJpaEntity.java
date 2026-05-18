@@ -3,12 +3,9 @@ package com.hub.adapters.out.persistence.jpa.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-/**
- * JPA persistence entity representing a book record stored in MySQL.
- *
- * This entity is intentionally isolated from the domain model to avoid
- * persistence concerns leaking into the core business layer.
- */
+import java.math.BigDecimal;
+import java.util.UUID;
+
 @Entity
 @Table(name = "books")
 @Getter
@@ -19,8 +16,8 @@ import lombok.*;
 public class BookJpaEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(nullable = false, length = 300)
     private String title;
@@ -30,6 +27,15 @@ public class BookJpaEntity {
 
     @Column(name = "published_year")
     private Integer publishedYear;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    @Column(nullable = false, length = 13, unique = true)
+    private String isbn;
+
+    @Column(nullable = false, length = 20)
+    private String status = "ACTIVE";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")

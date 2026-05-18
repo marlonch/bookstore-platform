@@ -1,6 +1,5 @@
 package com.hub.application.auth.service;
 
-
 import com.hub.application.auth.port.in.LoginUseCase;
 import com.hub.application.auth.port.in.LogoutUseCase;
 import com.hub.application.auth.port.in.command.LoginCommand;
@@ -45,22 +44,23 @@ public class AuthService implements LoginUseCase, LogoutUseCase {
             throw new InvalidCredentialsException("Invalid credentials");
         }
 
+        UUID userUuid = user.getId().value();
         String tokenId = UUID.randomUUID().toString();
         Instant now = Instant.now();
         Instant expiresAt = now.plus(Duration.ofHours(jwtExpirationHours));
 
         tokenMetadataPort.save(TokenMetadata.builder()
                 .tokenId(tokenId)
-                .userId(user.getId())
+                .userId(userUuid)
                 .issuedAt(now)
                 .expiresAt(expiresAt)
                 .status(TokenStatus.ACTIVE)
                 .build());
 
         String jwt = tokenGenerator.generate(new TokenGenerationCommand(
-                user.getId(), user.getUsername(), tokenId, user.getRoles(), expiresAt));
+                userUuid, user.getUsername(), tokenId, user.getRoles(), expiresAt));
 
-        return new LoginResult(jwt, user.getId(), user.getRoles());
+        return new LoginResult(jwt, userUuid, user.getRoles());
     }
 
     @Override

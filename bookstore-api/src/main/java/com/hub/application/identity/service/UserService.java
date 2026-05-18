@@ -9,6 +9,7 @@ import com.hub.application.identity.port.out.UserRepositoryPort;
 import com.hub.domain.auth.exception.UserNotFoundException;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import com.hub.domain.identity.UserStatus;
 import com.hub.domain.identity.exception.DuplicateEmailException;
 import com.hub.domain.identity.exception.DuplicateUsernameException;
@@ -40,10 +41,10 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
         }
 
         Set<Role> roles = (command.roles() != null && !command.roles().isEmpty())
-                ? command.roles()
-                : Set.of(Role.NON_ADMINISTRATOR);
+                ? command.roles() : Set.of(Role.NON_ADMINISTRATOR);
 
         return userRepository.save(User.builder()
+                .id(UserId.generate())
                 .username(command.username())
                 .email(command.email())
                 .passwordHash(passwordHasher.encode(command.rawPassword()))
@@ -53,7 +54,7 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
     }
 
     @Override
-    public User getUser(Long userId) {
+    public User getUser(UserId userId) {
         Objects.requireNonNull(userId, "userId must not be null");
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
@@ -66,6 +67,15 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
         User existing = userRepository.findById(command.id())
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + command.id()));
 
+        if (command.username() != null && !command.username().equals(existing.getUsername())
+                && userRepository.existsByUsername(command.username())) {
+            throw new DuplicateUsernameException("Username already in use: " + command.username());
+        }
+        if (command.email() != null && !command.email().equals(existing.getEmail())
+                && userRepository.existsByEmail(command.email())) {
+            throw new DuplicateEmailException("Email already in use: " + command.email());
+        }
+
         String newHash = (command.rawPassword() != null)
                 ? passwordHasher.encode(command.rawPassword())
                 : existing.getPasswordHash();
@@ -73,7 +83,7 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
         UserStatus newStatus = (command.status() != null) ? command.status() : existing.getStatus();
 
         if (newStatus == UserStatus.INACTIVE || newStatus == UserStatus.BANNED) {
-            tokenMetadataPort.revokeAllUserTokens(command.id());
+            tokenMetadataPort.revokeAllUserTokens(command.id().value());
         }
 
         return userRepository.save(User.builder()
@@ -87,13 +97,13 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
     }
 
     @Override
-    public void deleteUser(Long userId) {
+    public void deleteUser(UserId userId) {
         Objects.requireNonNull(userId, "userId must not be null");
 
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException("User not found: " + userId);
         }
-        tokenMetadataPort.revokeAllUserTokens(userId);
+        tokenMetadataPort.revokeAllUserTokens(userId.value());
         userRepository.deleteById(userId);
     }
 
@@ -101,5 +111,4 @@ public class UserService implements CreateUserUseCase, GetUserUseCase, UpdateUse
     public List<User> listUsers() {
         return userRepository.findAll();
     }
-
 }

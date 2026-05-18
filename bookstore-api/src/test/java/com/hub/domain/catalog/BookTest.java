@@ -1,54 +1,110 @@
 package com.hub.domain.catalog;
 
+import com.hub.domain.catalog.book.ISBN;
+import com.hub.domain.catalog.book.Book;
+import com.hub.domain.catalog.book.BookStatus;
 import com.hub.domain.catalog.exception.InvalidBookException;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BookTest {
-    @Test
-    void shouldCreateBookWhenDataIsValid() {
-        Book book = Book.createNew( "Domain-Driven Design", "Marlon Cardenas", 2026);
 
-        assertEquals("Domain-Driven Design", book.getTitle());
-        assertEquals("Marlon Cardenas", book.getAuthor());
-        assertEquals(2026, book.getPublishedYear());
+    private static final BigDecimal VALID_PRICE = new BigDecimal("29.99");
+    private static final ISBN VALID_ISBN = new ISBN("9780134190440");
+
+    // --- createNew ---
+
+    @Test
+    void createNew_withValidData_setsFieldsAndActiveStatus() {
+        Book book = Book.createNew("Domain-Driven Design", "Marlon Cardenas", 2026, VALID_PRICE, VALID_ISBN);
+
+        assertThat(book.getTitle()).isEqualTo("Domain-Driven Design");
+        assertThat(book.getAuthor()).isEqualTo("Marlon Cardenas");
+        assertThat(book.getPublishedYear()).isEqualTo(2026);
+        assertThat(book.getPrice()).isEqualByComparingTo(VALID_PRICE);
+        assertThat(book.getIsbn()).isEqualTo(VALID_ISBN);
+        assertThat(book.getStatus()).isEqualTo(BookStatus.ACTIVE);
+        assertThat(book.getOwnerId()).isEmpty();
     }
 
     @Test
-    void shouldThrowExceptionWhenTitleIsNull() {
+    void createNew_withNullTitle_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew(null, "Marlon Cardenas", 2026));
+                () -> Book.createNew(null, "Author", 2020, VALID_PRICE, VALID_ISBN));
     }
 
     @Test
-    void shouldThrowExceptionWhenTitleIsBlank() {
+    void createNew_withBlankTitle_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew("   ", "Marlon Cardenas", 2026));
+                () -> Book.createNew("   ", "Author", 2020, VALID_PRICE, VALID_ISBN));
     }
 
     @Test
-    void shouldThrowExceptionWhenAuthorIsNull() {
+    void createNew_withNullAuthor_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew("Domain-Driven Design", null, 2026));
+                () -> Book.createNew("Title", null, 2020, VALID_PRICE, VALID_ISBN));
     }
 
     @Test
-    void shouldThrowExceptionWhenAuthorIsBlank() {
+    void createNew_withBlankAuthor_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew( "Domain-Driven Design", "   ", 2026));
+                () -> Book.createNew("Title", "   ", 2020, VALID_PRICE, VALID_ISBN));
     }
 
     @Test
-    void shouldThrowExceptionWhenPublishedYearIsTooEarly() {
+    void createNew_withYearTooEarly_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew("Some Book", "Some Author", 1200));
+                () -> Book.createNew("Title", "Author", 1200, VALID_PRICE, VALID_ISBN));
     }
 
     @Test
-    void shouldThrowExceptionWhenPublishedYearIsInFuture() {
+    void createNew_withFutureYear_throwsInvalidBookException() {
         int futureYear = java.time.Year.now().getValue() + 1;
         assertThrows(InvalidBookException.class,
-                () -> Book.createNew("Future Book", "Some Author", futureYear));
+                () -> Book.createNew("Title", "Author", futureYear, VALID_PRICE, VALID_ISBN));
+    }
+
+    @Test
+    void createNew_withZeroPrice_throwsInvalidBookException() {
+        assertThrows(InvalidBookException.class,
+                () -> Book.createNew("Title", "Author", 2020, BigDecimal.ZERO, VALID_ISBN));
+    }
+
+    @Test
+    void createNew_withNegativePrice_throwsInvalidBookException() {
+        assertThrows(InvalidBookException.class,
+                () -> Book.createNew("Title", "Author", 2020, new BigDecimal("-1.00"), VALID_ISBN));
+    }
+
+    @Test
+    void createNew_withNullIsbn_throwsInvalidBookException() {
+        assertThrows(InvalidBookException.class,
+                () -> Book.createNew("Title", "Author", 2020, VALID_PRICE, null));
+    }
+
+    // --- deactivate ---
+
+    @Test
+    void deactivate_fromActive_setsStatusToInactive() {
+        Book book = Book.createNew("Title", "Author", 2020, VALID_PRICE, VALID_ISBN);
+
+        book.deactivate();
+
+        assertThat(book.getStatus()).isEqualTo(BookStatus.INACTIVE);
+    }
+
+    @Test
+    void deactivate_whenAlreadyInactive_throwsInvalidBookException() {
+        Book book = Book.createNew("Title", "Author", 2020, VALID_PRICE, VALID_ISBN);
+        book.deactivate();
+
+        assertThatThrownBy(book::deactivate)
+                .isInstanceOf(InvalidBookException.class)
+                .hasMessageContaining("already inactive");
     }
 }

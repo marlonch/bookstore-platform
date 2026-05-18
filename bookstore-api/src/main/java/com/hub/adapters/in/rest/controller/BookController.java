@@ -4,8 +4,10 @@ import com.hub.adapters.in.rest.dto.request.CreateBookRequest;
 import com.hub.adapters.in.rest.dto.request.UpdateBookRequest;
 import com.hub.adapters.in.rest.dto.response.BookResponse;
 import com.hub.adapters.in.rest.mapper.BookRestMapper;
-import com.hub.application.catalog.port.in.*;
-import com.hub.application.catalog.port.in.command.AssignBookCommand;
+import com.hub.application.catalog.book.port.in.*;
+import com.hub.application.catalog.book.port.in.command.AssignBookCommand;
+import com.hub.domain.catalog.book.BookId;
+import com.hub.domain.identity.UserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -38,8 +41,8 @@ public class BookController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BookResponse> getBook(@PathVariable Long id) {
-        return ResponseEntity.ok(bookMapper.toResponse(getBookUseCase.getBook(id)));
+    public ResponseEntity<BookResponse> getBook(@PathVariable UUID id) {
+        return ResponseEntity.ok(bookMapper.toResponse(getBookUseCase.getBook(new BookId(id))));
     }
 
     @PostMapping
@@ -51,7 +54,7 @@ public class BookController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<BookResponse> updateBook(@PathVariable Long id,
+    public ResponseEntity<BookResponse> updateBook(@PathVariable UUID id,
             @Valid @RequestBody UpdateBookRequest request) {
         return ResponseEntity.ok(bookMapper.toResponse(
                 updateBookUseCase.updateBook(bookMapper.toUpdateCommand(id, request))));
@@ -59,16 +62,17 @@ public class BookController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
-        deleteBookUseCase.deleteBook(id);
+    public ResponseEntity<Void> deleteBook(@PathVariable UUID id) {
+        deleteBookUseCase.deleteBook(new BookId(id));
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{bookId}/assign/{userId}")
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
-    public ResponseEntity<BookResponse> assignBookToUser(@PathVariable Long bookId,
-            @PathVariable Long userId) {
+    public ResponseEntity<BookResponse> assignBookToUser(@PathVariable UUID bookId,
+            @PathVariable UUID userId) {
         return ResponseEntity.ok(bookMapper.toResponse(
-                assignBookToUserUseCase.assignBookToUser(new AssignBookCommand(bookId, userId))));
+                assignBookToUserUseCase.assignBookToUser(
+                        new AssignBookCommand(new BookId(bookId), new UserId(userId)))));
     }
 }

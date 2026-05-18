@@ -7,13 +7,8 @@ import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
-/**
- * JPA persistence entity representing a user record stored in MySQL.
- *
- * <p>This entity is intentionally isolated from the domain model to prevent
- * persistence concerns from leaking into the core business layer.</p>
- */
 @Entity
 @Table(name = "users")
 @Getter
@@ -24,8 +19,8 @@ import java.util.Set;
 public class UserJpaEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(unique = true, nullable = false, length = 100)
     private String username;
