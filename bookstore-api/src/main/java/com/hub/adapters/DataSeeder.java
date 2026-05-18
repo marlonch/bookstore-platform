@@ -54,6 +54,16 @@ public class DataSeeder implements ApplicationRunner {
         } catch (DuplicateUsernameException | DuplicateEmailException e) {
             log.debug("[DataSeeder] Admin user already exists, skipping.");
         }
+        try {
+            createUserUseCase.createUser(new CreateUserCommand(
+                    "user",
+                    "user@hub.com",
+                    "User123!",
+                    Set.of(Role.NON_ADMINISTRATOR)));
+            log.info("[DataSeeder] Regular user created  ->  username=user  password=User123!");
+        } catch (DuplicateUsernameException | DuplicateEmailException e) {
+            log.debug("[DataSeeder] Regular user already exists, skipping.");
+        }
     }
 
     private void seedBooks() {

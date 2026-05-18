@@ -71,6 +71,7 @@ Once all services are healthy, the API is available at:
 | Username | Password | Role |
 |---|---|---|
 | `admin` | `Admin123!` | ADMINISTRATOR |
+| `user` | `User123!` | NON_ADMINISTRATOR |
 
 5 sample books are also seeded. Seeding is idempotent — restarting the stack never duplicates data.
 
