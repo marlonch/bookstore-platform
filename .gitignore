@@ -5,3 +5,5 @@ target/
 .idea/
 *.iml
 .DS_Store
+# RSA dev keys are intentionally committed so `docker compose up` works out of the box.
+# Generate new keys and inject via JWT_PRIVATE_KEY_PATH / JWT_PUBLIC_KEY_PATH in production.

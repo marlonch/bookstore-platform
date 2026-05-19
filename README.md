@@ -94,7 +94,8 @@ mvn spring-boot:run -pl bookstore-api
 | `DB_PASSWORD` | `password` | MySQL password |
 | `REDIS_HOST` | `localhost` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
-| `JWT_SECRET` | *(dev key)* | Base64 HMAC secret — **override in production** |
+| `JWT_PRIVATE_KEY_PATH` | `classpath:keys/private.pem` | RSA private key — **mount a real key in production** |
+| `JWT_PUBLIC_KEY_PATH` | `classpath:keys/public.pem` | RSA public key — safe to distribute |
 | `JWT_EXPIRATION_HOURS` | `24` | Token TTL in hours |
 
 ---
@@ -158,7 +159,7 @@ Full interactive docs: **http://localhost:8080/swagger-ui/index.html**
 
 ## Security Model
 
-Authentication is JWT-based with a Redis-backed **token allowlist**. Every login creates a UUID `tokenId`, stores it in Redis (`ACTIVE`, 24h TTL), and embeds it as the JWT `jti` claim. On every authenticated request, `JwtAuthFilter` validates the signature and then checks Redis — a missing or `REVOKED` entry rejects the request regardless of a valid signature.
+Authentication is JWT-based (**RS256**) with a Redis-backed **token allowlist**. Every login creates a UUID `tokenId`, stores it in Redis (`ACTIVE`, 24h TTL), and embeds it as the JWT `jti` claim. On every authenticated request, `JwtAuthFilter` validates the RSA signature and then checks Redis — a missing or `REVOKED` entry rejects the request regardless of a valid signature.
 
 This means logout is immediate and effective across all instances: revoking a token on node A is instantly visible to node B because both share Redis.
 
@@ -175,6 +176,9 @@ The domain and application services are pure Java — no Spring, no JPA, no Redi
 
 **Why Redis for token revocation?**
 JWTs are stateless by design, but logout requires stateful revocation. Redis gives O(1) lookup per request, and a TTL matching the JWT expiration ensures keys are cleaned up automatically without a background job.
+
+**Why RS256 instead of HS256 for JWT signing?**
+HS256 uses a single shared secret — any service that needs to verify tokens must hold the secret, becoming an additional exposure point. RS256 signs with a private key (kept only in bookstore-api) and verifies with a public key that is safe to distribute. Other services that validate tokens locally only need the public key.
 
 **Why store `tokenId` (UUID) as the JWT `jti` claim instead of the full JWT?**
 The `jti` is a small, opaque UUID stored as the Redis key. Avoids storing large JWT strings and aligns with RFC 7519's intent for `jti` as a unique token identifier.
