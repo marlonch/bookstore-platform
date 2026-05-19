@@ -12,14 +12,8 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
-/**
- * Redis-backed implementation of {@link TokenMetadataRepositoryPort}.
- *
- * <p>Stores token metadata with a Redis TTL derived from the token expiration
- * timestamp. Disabled in the {@code test} profile to avoid requiring a live
- * Redis instance during automated tests.</p>
- */
 @Component
 @Profile("!test")
 @RequiredArgsConstructor
@@ -54,7 +48,7 @@ public class TokenMetadataRedisAdapter implements TokenMetadataRepositoryPort {
     }
 
     @Override
-    public void revokeAllUserTokens(Long userId) {
+    public void revokeAllUserTokens(UUID userId) {
         redisRepository.findByUserId(userId).stream()
                 .filter(e -> !TokenStatus.REVOKED.name().equals(e.getStatus()))
                 .forEach(e -> {

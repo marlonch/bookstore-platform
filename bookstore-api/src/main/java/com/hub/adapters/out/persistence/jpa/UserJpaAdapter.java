@@ -4,6 +4,7 @@ import com.hub.adapters.out.persistence.jpa.mapper.UserJpaMapper;
 import com.hub.adapters.out.persistence.jpa.repository.UserJpaRepository;
 import com.hub.application.identity.port.out.UserRepositoryPort;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -24,8 +25,8 @@ public class UserJpaAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public Optional<User> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
+    public Optional<User> findById(UserId id) {
+        return jpaRepository.findById(id.value()).map(mapper::toDomain);
     }
 
     @Override
@@ -44,8 +45,8 @@ public class UserJpaAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+    public void deleteById(UserId id) {
+        jpaRepository.deleteById(id.value());
     }
 
     @Override
@@ -59,7 +60,7 @@ public class UserJpaAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public boolean existsById(Long id) {
-        return jpaRepository.existsById(id);
+    public boolean existsById(UserId id) {
+        return jpaRepository.existsById(id.value());
     }
 }

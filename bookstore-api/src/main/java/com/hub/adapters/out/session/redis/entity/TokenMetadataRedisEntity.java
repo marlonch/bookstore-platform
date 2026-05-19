@@ -6,6 +6,8 @@ import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 import org.springframework.data.redis.core.index.Indexed;
 
+import java.util.UUID;
+
 @RedisHash("token_metadata")
 @Getter
 @Setter
@@ -18,7 +20,7 @@ public class TokenMetadataRedisEntity {
     private String tokenId;
 
     @Indexed
-    private Long userId;
+    private UUID userId;
 
     private long issuedAtEpoch;
     private long expiresAtEpoch;

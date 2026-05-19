@@ -15,7 +15,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class User {
 
-    private Long id;
+    private UserId id;
     private String username;
     private String email;
     private String passwordHash;

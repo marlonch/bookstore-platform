@@ -37,7 +37,7 @@ class JwtProviderTest {
     void generate_producesTokenWithExpectedClaims() {
         String tokenId = UUID.randomUUID().toString();
         TokenGenerationCommand command = new TokenGenerationCommand(
-                42L, "alice", tokenId, Set.of(Role.ADMINISTRATOR),
+                UUID.randomUUID(), "alice", tokenId, Set.of(Role.ADMINISTRATOR),
                 Instant.now().plusSeconds(3600));
 
         String token = jwtProvider.generate(command);
@@ -45,7 +45,7 @@ class JwtProviderTest {
         Claims claims = jwtProvider.parseClaims(token);
         assertThat(claims.getSubject()).isEqualTo("alice");
         assertThat(claims.getId()).isEqualTo(tokenId);
-        assertThat(claims.get("userId", Long.class)).isEqualTo(42L);
+        assertThat(claims.get("userId", String.class)).isEqualTo(command.userId().toString());
         assertThat(claims.get("roles")).asList().contains("ADMINISTRATOR");
     }
 
@@ -58,7 +58,7 @@ class JwtProviderTest {
     @Test
     void isValid_returnsFalseForExpiredToken() {
         TokenGenerationCommand command = new TokenGenerationCommand(
-                1L, "alice", UUID.randomUUID().toString(),
+                UUID.randomUUID(), "alice", UUID.randomUUID().toString(),
                 Set.of(Role.NON_ADMINISTRATOR), Instant.now().minusSeconds(1));
 
         String token = jwtProvider.generate(command);
@@ -87,7 +87,7 @@ class JwtProviderTest {
         setFieldOn(otherProvider, "publicKey", (RSAPublicKey) other.getPublic());
 
         String tokenFromOther = otherProvider.generate(new TokenGenerationCommand(
-                1L, "alice", UUID.randomUUID().toString(),
+                UUID.randomUUID(), "alice", UUID.randomUUID().toString(),
                 Set.of(Role.NON_ADMINISTRATOR), Instant.now().plusSeconds(3600)));
 
         assertThat(jwtProvider.isValid(tokenFromOther)).isFalse();
@@ -106,7 +106,7 @@ class JwtProviderTest {
 
     private String generate(String username) {
         return jwtProvider.generate(new TokenGenerationCommand(
-                1L, username, UUID.randomUUID().toString(),
+                UUID.randomUUID(), username, UUID.randomUUID().toString(),
                 Set.of(Role.NON_ADMINISTRATOR), Instant.now().plusSeconds(3600)));
     }
 

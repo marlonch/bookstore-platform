@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /** Session token metadata persisted in Redis. */
 @Getter
@@ -15,7 +16,7 @@ import java.time.Instant;
 public class TokenMetadata {
 
     private String tokenId;
-    private Long userId;
+    private UUID userId;
     private Instant issuedAt;
     private Instant expiresAt;
     private TokenStatus status;

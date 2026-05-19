@@ -1,6 +1,6 @@
-package com.hub.application.catalog.port.in;
+package com.hub.application.catalog.book.port.in;
 
-import com.hub.domain.catalog.Book;
+import com.hub.domain.catalog.book.Book;
 
 import java.util.List;
 

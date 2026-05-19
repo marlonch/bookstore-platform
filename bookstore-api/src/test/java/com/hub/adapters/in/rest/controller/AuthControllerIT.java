@@ -9,6 +9,7 @@ import com.hub.domain.auth.TokenMetadata;
 import com.hub.domain.auth.TokenStatus;
 import com.hub.domain.identity.Role;
 import com.hub.domain.identity.User;
+import com.hub.domain.identity.UserId;
 import com.hub.domain.identity.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,13 +71,14 @@ class AuthControllerIT {
                 .thenReturn(Optional.of(
                         TokenMetadata.builder()
                                 .tokenId("test-token-id")
-                                .userId(1L)
+                                .userId(UUID.randomUUID())
                                 .issuedAt(Instant.now())
                                 .expiresAt(Instant.now().plusSeconds(3600))
                                 .status(TokenStatus.ACTIVE)
                                 .build()));
 
         userJpaAdapter.save(User.builder()
+                .id(UserId.generate())
                 .username(USERNAME)
                 .email("user@hub.com")
                 .passwordHash(passwordHasherPort.encode(RAW_PASSWORD))

@@ -4,8 +4,11 @@ import com.hub.adapters.out.persistence.jpa.entity.BookJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface BookJpaRepository extends JpaRepository<BookJpaEntity, Long> {
+public interface BookJpaRepository extends JpaRepository<BookJpaEntity, UUID> {
 
-    List<BookJpaEntity> findByOwnerId(Long ownerId);
+    List<BookJpaEntity> findByOwner_Id(UUID ownerId);
+
+    boolean existsByIsbn(String isbn);
 }
