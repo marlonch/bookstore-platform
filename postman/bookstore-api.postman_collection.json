@@ -10,7 +10,7 @@
       "key": "local_http_base_url",
       "value": "http://localhost:8080",
       "type": "string",
-      "description": "API base URL"
+      "description": "bookstore-api base URL"
     },
     {
       "key": "token",
@@ -125,8 +125,14 @@
             },
             "url": {
               "raw": "{{local_http_base_url}}/api/auth/login",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "auth", "login"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
             },
             "description": "Authenticates the user and saves the JWT in `{{token}}`.\n\n**Auth:** none (public endpoint)\n**Response 200:** `{ \"token\": \"<jwt>\" }`"
           }
@@ -153,8 +159,14 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/auth/logout",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "auth", "logout"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
             },
             "description": "Invalidates the current JWT in Redis (status → REVOKED) and clears `{{token}}`.\n\n**Auth:** Bearer token required\n**Response 204:** No Content"
           }
@@ -186,8 +198,13 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/books",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books"
+              ]
             },
             "description": "Returns all books.\n\n**Auth:** any authenticated user\n**Response 200:** `[ { id, title, author, publishedYear, ownerId } ]`"
           }
@@ -213,8 +230,14 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books", "{{book_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "{{book_id}}"
+              ]
             },
             "description": "Returns a book by ID.\n\n**Auth:** any authenticated user\n**Path param:** `{{book_id}}`\n**Response 200:** `{ id, title, author, publishedYear, ownerId }`\n**Response 404:** book not found"
           }
@@ -247,7 +270,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"Clean Code\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008\n}",
+              "raw": "{\n    \"title\": \"Clean Code\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008,\n    \"price\": 29.99\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -256,8 +279,13 @@
             },
             "url": {
               "raw": "{{local_http_base_url}}/api/books",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books"
+              ]
             },
             "description": "Creates a new book and saves its ID in `{{book_id}}`.\n\n**Auth:** ADMINISTRATOR role required\n**Body:** `title` (required, max 300), `author` (required, max 200), `publishedYear` (optional)\n**Response 201:** created book"
           }
@@ -285,7 +313,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"title\": \"Clean Code - Updated\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008\n}",
+              "raw": "{\n    \"title\": \"Clean Code - Updated\",\n    \"author\": \"Robert C. Martin\",\n    \"publishedYear\": 2008,\n    \"price\": 34.99\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -294,8 +322,14 @@
             },
             "url": {
               "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books", "{{book_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "{{book_id}}"
+              ]
             },
             "description": "Updates an existing book.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{book_id}}`\n**Body:** all fields are optional\n**Response 200:** updated book\n**Response 404:** book not found"
           }
@@ -318,8 +352,14 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/books/{{book_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books", "{{book_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "{{book_id}}"
+              ]
             },
             "description": "Deletes a book by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{book_id}}`\n**Response 204:** No Content\n**Response 404:** book not found"
           }
@@ -347,8 +387,16 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/books/{{book_id}}/assign/{{user_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "books", "{{book_id}}", "assign", "{{user_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "books",
+                "{{book_id}}",
+                "assign",
+                "{{user_id}}"
+              ]
             },
             "description": "Assigns a book to a user.\n\n**Auth:** ADMINISTRATOR role required\n**Path params:** `{{book_id}}`, `{{user_id}}`\n**Response 200:** book with updated `ownerId`\n**Response 404:** book or user not found"
           }
@@ -380,8 +428,13 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/users",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
             },
             "description": "Returns all users.\n\n**Auth:** ADMINISTRATOR role required\n**Response 200:** `[ { id, username, email, roles, status } ]`"
           }
@@ -423,8 +476,13 @@
             },
             "url": {
               "raw": "{{local_http_base_url}}/api/users",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
             },
             "description": "Creates a new user and saves its ID in `{{user_id}}`.\n\n**Auth:** ADMINISTRATOR role required\n**Body:** `username` (3-100 chars), `email` (valid format), `password` (min 8 chars), `roles` (optional)\n**Valid roles:** `ADMINISTRATOR`, `NON_ADMINISTRATOR`\n**Response 201:** created user"
           }
@@ -450,8 +508,14 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
             },
             "description": "Returns a user by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Response 200:** `{ id, username, email, roles, status }`\n**Response 404:** user not found"
           }
@@ -488,8 +552,14 @@
             },
             "url": {
               "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
             },
             "description": "Updates an existing user.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Body:** all fields are optional\n**Valid statuses:** `ACTIVE`, `INACTIVE`, `BANNED`\n**Response 200:** updated user\n**Response 404:** user not found"
           }
@@ -512,8 +582,14 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/users/{{user_id}}",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
             },
             "description": "Deletes a user by ID.\n\n**Auth:** ADMINISTRATOR role required\n**Path param:** `{{user_id}}`\n**Response 204:** No Content\n**Response 404:** user not found"
           }
@@ -539,8 +615,15 @@
             "header": [],
             "url": {
               "raw": "{{local_http_base_url}}/api/users/{{user_id}}/books",
-              "host": ["{{local_http_base_url}}"],
-              "path": ["api", "users", "{{user_id}}", "books"]
+              "host": [
+                "{{local_http_base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                "books"
+              ]
             },
             "description": "Returns the books assigned to a user.\n\n**Auth:** authenticated user with access rules:\n- ADMINISTRATOR: can list books for any user\n- NON_ADMINISTRATOR: can only list their own books → 403 if attempting another user's books\n\n**Path param:** `{{user_id}}`\n**Response 200:** list of books\n**Response 403:** access denied"
           }
