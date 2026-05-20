@@ -1,6 +1,6 @@
-# Bookstore API
-> RESTful API for bookstore catalog management with role-based access control.
-> Built with **Java 17 · Spring Boot 4 · Hexagonal Architecture · JWT · Redis**.
+# Bookstore Platform
+> Multi-service platform for bookstore catalog and order management.
+> Built with **Java 17 · Spring Boot 4 · Hexagonal Architecture · JWT RS256 · Redis**.
 
 ![Java](https://img.shields.io/badge/Java-17-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-green)
@@ -34,6 +34,13 @@ The domain and application layers have zero Spring dependencies — they are tes
 
 ---
 
+## Services
+
+| Service | Port | Role |
+|---|---|---|
+| `bookstore-api` | 8080 | Catalog management, authentication, JWT issuance (RS256 private key) |
+| `bookstore-order-service` | 8081 | Order lifecycle, JWT validation (RS256 public key only), Feign → bookstore-api |
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -41,11 +48,12 @@ The domain and application layers have zero Spring dependencies — they are tes
 | Language | Java 17 |
 | Framework | Spring Boot 4.0.6 |
 | Persistence | MySQL 8 + Spring Data JPA (H2 in tests) |
-| Token store | Redis 7 (JWT allowlist with TTL) |
-| Security | Spring Security 6 + JJWT 0.12.5 |
+| Token store | Redis 7 (JWT allowlist — bookstore-api only) |
+| Security | Spring Security 6 + JJWT 0.12.5 (RS256) |
+| Inter-service | Spring Cloud OpenFeign + JWT propagation |
 | API docs | SpringDoc OpenAPI 2 (Swagger UI) |
 | Build | Maven (multi-module) |
-| Tests | JUnit 5 + Mockito + TestRestTemplate |
+| Tests | JUnit 5 + Mockito + WebTestClient |
 | Container | Docker + Docker Compose |
 
 ---
@@ -62,9 +70,13 @@ docker compose up -d
 
 The first run builds the `bookstore-api` image (multi-stage Maven build). Subsequent runs reuse the cached image.
 
-Once all services are healthy, the API is available at:
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **Base URL:** http://localhost:8080
+Once all services are healthy:
+- **Swagger UI (bookstore-api):** http://localhost:8080/swagger-ui/index.html
+- **Swagger UI (order-service):** http://localhost:8081/swagger-ui/index.html
+- **bookstore-api base URL:** http://localhost:8080
+- **bookstore-order-service base URL:** http://localhost:8081
+
+Both Swagger UIs include a dropdown to switch between the two services' specs — you can browse the full platform API from a single tab.
 
 **Credentials seeded on startup:**
 
@@ -90,14 +102,17 @@ Attaches a JDWP agent to bookstore-api with `suspend=n` (service starts immediat
 **Prerequisites:** Java 17, Maven, MySQL 8 on `localhost:3306`, Redis on `localhost:6379`.
 
 ```bash
-# 1. Create the database
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS bookstore_db;"
+# 1. Create the databases
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS bookstore_db; CREATE DATABASE IF NOT EXISTS orders_db;"
 
-# 2. Run
+# 2. Run bookstore-api (port 8080)
 mvn spring-boot:run -pl bookstore-api
+
+# 3. Run bookstore-order-service (port 8081) — in a separate terminal
+mvn spring-boot:run -pl bookstore-order-service
 ```
 
-**Environment variables (all have defaults for local dev):**
+**Environment variables — bookstore-api:**
 
 | Variable | Default | Description |
 |---|---|---|
@@ -109,22 +124,34 @@ mvn spring-boot:run -pl bookstore-api
 | `JWT_PUBLIC_KEY_PATH` | `classpath:keys/public.pem` | RSA public key — safe to distribute |
 | `JWT_EXPIRATION_HOURS` | `24` | Token TTL in hours |
 
+**Environment variables — bookstore-order-service:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `DB_USERNAME` | `root` | MySQL username |
+| `DB_PASSWORD` | `password` | MySQL password |
+| `BOOKSTORE_API_URL` | `http://localhost:8080` | bookstore-api base URL (Feign target) |
+| `JWT_PUBLIC_KEY_PATH` | `classpath:keys/public.pem` | RSA public key for token validation |
+
 ---
 
 ## Running Tests
 
 ```bash
-# All tests (unit + integration)
+# All tests for bookstore-api (unit + integration)
 mvn test -pl bookstore-api
 
+# All tests for bookstore-order-service (unit + integration)
+mvn test -pl bookstore-order-service
+
 # Single class
-mvn test -Dtest=BookControllerIT -pl bookstore-api
+mvn test -Dtest=OrderControllerIT -pl bookstore-order-service
 
 # Single method
-mvn test -Dtest=BookControllerIT#createBook_asAdmin_returns201WithBody -pl bookstore-api
+mvn test -Dtest=OrderControllerIT#createOrder_withValidToken_returns201AndOrder -pl bookstore-order-service
 ```
 
-Tests use H2 (in-memory) instead of MySQL and a `@MockitoBean` for Redis — no external services required.
+Both services use H2 (in-memory) for integration tests and `@MockitoBean` for external dependencies — no Docker required to run tests.
 
 ---
 
@@ -159,10 +186,21 @@ Tests use H2 (in-memory) instead of MySQL and a `@MockitoBean` for Redis — no 
 | `DELETE` | `/api/users/{id}` | ADMIN | Delete a user |
 | `GET` | `/api/users/{id}/books` | Bearer | List books assigned to user |
 
+### Orders (bookstore-order-service — port 8081)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/orders` | Bearer | Create an order (validates book via Feign → bookstore-api) |
+| `GET` | `/api/orders` | Bearer | List orders for the authenticated user |
+| `GET` | `/api/orders/{orderId}` | Bearer | Get order by ID |
+| `DELETE` | `/api/orders/{orderId}` | Bearer | Cancel an order |
+
 ## Trying the API
 
 Import [`postman/bookstore-api.postman_collection.json`](postman/bookstore-api.postman_collection.json) into Postman.
-Run **Auth > Login** first — the JWT is saved automatically and applied to all subsequent requests.
+1. Run **Auth > Login** — JWT saved automatically to `{{token}}` and applied to all requests.
+2. The **Orders** folder targets `{{order_service_base_url}}` (defaults to `http://localhost:8081`).
+3. **Create Order** uses `{{book_id}}` (saved after Create Book) and saves `{{order_id}}` on success.
 
 Full interactive docs: **http://localhost:8080/swagger-ui/index.html**
 
@@ -203,36 +241,40 @@ A bare `null` field is invisible at the call site — callers can forget to null
 **Why H2 in integration tests instead of Testcontainers?**
 H2's `MODE=MySQL` is fast and requires no Docker daemon in CI. The trade-off is reduced production parity. A natural next step would be replacing H2 with Testcontainers for true MySQL fidelity.
 
+**Why a Correlation ID on every request?**
+A single user action can touch both services. Without a shared identifier, logs from `bookstore-api` and `bookstore-order-service` are unrelatable — you cannot tell which log lines from service A belong to the same logical request as which lines from service B. `CorrelationIdFilter` runs on every inbound request (highest filter precedence), assigns a UUID if the client did not supply `X-Correlation-Id`, places it in SLF4J MDC, and echoes it in the response header. `JwtPropagationInterceptor` forwards the same ID on all Feign calls so the trace is consistent end to end.
+
 ---
 
 ## Project Structure
 
 ```
 bookstore-platform/
-├── bookstore-api/               ← Spring Boot application
+├── bookstore-api/               ← Catalog service (port 8080)
 │   └── src/main/java/com/hub/
 │       ├── domain/              ← Pure Java: models, exceptions (no Spring)
-│       │   ├── catalog/
-│       │   │   ├── book/        ← Book aggregate, BookId, ISBN, BookStatus
-│       │   │   └── stock/       ← Stock aggregate
+│       │   ├── catalog/         ← Book aggregate, BookId, ISBN, BookStatus, Stock
 │       │   ├── identity/        ← User, UserId, Role, UserStatus
 │       │   └── auth/            ← TokenMetadata, TokenStatus
 │       ├── application/         ← Use-case interfaces + services (no Spring)
-│       │   ├── catalog/
-│       │   │   ├── book/        ← book use-case ports + commands
-│       │   │   └── stock/       ← stock use-case ports + commands
-│       │   ├── identity/
-│       │   ├── auth/
-│       │   └── shared/          ← TransactionPort (cross-cutting output port)
 │       └── adapters/            ← Spring-aware implementations
 │           ├── in/rest/         ← Controllers, DTOs, GlobalExceptionHandler
 │           ├── out/persistence/ ← JPA entities, repositories, mappers
 │           ├── out/session/     ← Redis token store
-│           ├── security/        ← JwtAuthFilter, SecurityConfig
-│           └── DataSeeder.java  ← Demo data on startup
+│           └── security/        ← JwtProvider (RS256 sign), JwtAuthFilter
+├── bookstore-order-service/     ← Order service (port 8081)
+│   └── src/main/java/com/hub/bookstoreorderservice/
+│       ├── domain/              ← Order, OrderItem, OrderStatus (pure Java)
+│       ├── application/order/   ← Use-case ports + OrderService
+│       └── adapters/
+│           ├── in/rest/         ← OrderController, DTOs, GlobalExceptionHandler
+│           ├── out/catalog/     ← BookFeignInterface, JwtPropagationInterceptor
+│           ├── out/persistence/ ← OrderJpaEntity, OrderJpaAdapter
+│           └── security/        ← JwtValidator (RS256 verify), JwtAuthFilter
 ├── bookstore-env/               ← Docker Compose environment
-│   ├── docker-compose.yml       ← MySQL + Redis + bookstore-api
-│   └── docker-compose.debug.yml ← Override: enables remote JVM debug on port 5005
+│   ├── docker-compose.yml       ← MySQL (bookstore_db + orders_db) + Redis + both services
+│   ├── docker-compose.debug.yml ← Override: enables remote JVM debug on port 5005
+│   └── init-db.sql              ← Creates orders_db on first MySQL startup
 └── postman/
-    └── bookstore-api.postman_collection.json
+    └── bookstore-api.postman_collection.json  ← Auth, Books, Users, Orders
 ```
