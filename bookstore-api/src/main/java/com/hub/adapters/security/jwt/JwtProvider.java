@@ -22,7 +22,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Generates and validates RS256-signed JWTs.
@@ -53,7 +52,7 @@ public class JwtProvider implements TokenGeneratorPort {
     @Override
     public String generate(TokenGenerationCommand command) {
         List<String> roleNames = command.roles().stream()
-                .map(Role::name).collect(Collectors.toList());
+                .map(Role::name).toList();
 
         return Jwts.builder()
                 .subject(command.username())

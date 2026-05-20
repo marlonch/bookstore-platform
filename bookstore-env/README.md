@@ -6,9 +6,10 @@ Docker Compose environment that runs the full bookstore platform locally with a 
 
 | Service | Image | Port | Role |
 |---|---|---|---|
-| `mysql` | mysql:8.0 | 3306 | Primary datastore |
-| `redis` | redis:7-alpine | 6379 | JWT session store (allowlist pattern) |
-| `bookstore-api` | built from source | 8080 | Spring Boot REST API |
+| `mysql` | mysql:8.0 | 3306 | Primary datastore — hosts `bookstore_db` and `orders_db` |
+| `redis` | redis:7-alpine | 6379 | JWT session store for bookstore-api (allowlist pattern) |
+| `bookstore-api` | built from source | 8080 | Catalog service — issues RS256 JWTs |
+| `bookstore-order-service` | built from source | 8081 | Order service — validates RS256 JWTs, calls bookstore-api via Feign |
 
 ## Prerequisites
 
@@ -24,9 +25,10 @@ docker compose up
 
 The first run builds the `bookstore-api` image (multi-stage Maven build). Subsequent runs reuse the cached image unless source changes.
 
-Once all services are healthy, the API is available at:
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **Base URL:** http://localhost:8080
+Once all services are healthy:
+- **Swagger UI (bookstore-api):** http://localhost:8080/swagger-ui/index.html
+- **bookstore-api:** http://localhost:8080
+- **bookstore-order-service:** http://localhost:8081
 
 **Default credentials seeded on startup:**
 
@@ -38,15 +40,15 @@ A `DataSeeder` also seeds 5 sample books on first run. Seeding is idempotent —
 
 ## Service startup order
 
-`bookstore-api` waits for both `mysql` and `redis` to pass their healthchecks before starting:
-
 ```
 mysql  (healthcheck: mysqladmin ping every 10s, up to 10 retries)  ──┐
-                                                                       ├──► bookstore-api
+                                                                       ├──► bookstore-api ──► bookstore-order-service
 redis  (healthcheck: redis-cli ping every 5s, up to 5 retries)    ──┘
 ```
 
-This prevents `HikariPool` connection errors on slow machines where MySQL takes 20–30 seconds to initialize.
+`bookstore-api` waits for `mysql` and `redis` healthchecks. `bookstore-order-service` waits for `mysql` healthcheck and `bookstore-api` service start.
+
+`init-db.sql` is mounted into MySQL's init directory — it creates `orders_db` alongside the default `bookstore_db` on first startup.
 
 ## Postman collection
 

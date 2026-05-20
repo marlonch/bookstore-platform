@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/books")
@@ -36,7 +35,7 @@ public class BookController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<BookResponse>> listBooks() {
         return ResponseEntity.ok(listBooksUseCase.listBooks().stream()
-                .map(bookMapper::toResponse).collect(Collectors.toList()));
+                .map(bookMapper::toResponse).toList());
     }
 
     @GetMapping("/{id}")
