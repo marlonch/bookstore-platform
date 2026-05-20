@@ -25,5 +25,6 @@
 
     <modules>
         <module>bookstore-api</module>
+        <module>bookstore-order-service</module>
     </modules>
 </project>

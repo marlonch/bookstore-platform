@@ -41,6 +41,18 @@
       "value": "1",
       "type": "string",
       "description": "User ID — set automatically after Create User"
+    },
+    {
+      "key": "order_service_base_url",
+      "value": "http://localhost:8081",
+      "type": "string",
+      "description": "bookstore-order-service base URL"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string",
+      "description": "Order ID — set automatically after Create Order"
     }
   ],
   "auth": {
@@ -626,6 +638,131 @@
               ]
             },
             "description": "Returns the books assigned to a user.\n\n**Auth:** authenticated user with access rules:\n- ADMINISTRATOR: can list books for any user\n- NON_ADMINISTRATOR: can only list their own books → 403 if attempting another user's books\n\n**Path param:** `{{user_id}}`\n**Response 200:** list of books\n**Response 403:** access denied"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Order management endpoints served by bookstore-order-service on port 8081.\n\nThe JWT obtained from Auth > Login is forwarded automatically. Create Order saves `{{order_id}}` for subsequent requests.",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('order_id', json.orderId);",
+                  "    console.log('[Orders] order_id saved:', json.orderId);",
+                  "    pm.test('Order created', () => {",
+                  "        pm.expect(json.orderId).to.be.a('string').and.not.empty;",
+                  "        pm.expect(json.orderStatus).to.equal('CREATED');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bookId\": \"{{book_id}}\",\n    \"quantity\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{order_service_base_url}}/api/orders",
+              "host": ["{{order_service_base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Creates a new order for the authenticated user.\n\n**Auth:** any authenticated user\n**Body:** `bookId` (UUID from bookstore-api catalog), `quantity` (positive int)\n**Response 201:** order with generated `orderId`, `orderStatus: CREATED`, and `totalAmount`\n\nSaves `{{order_id}}` automatically."
+          }
+        },
+        {
+          "name": "Get Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order retrieved', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().orderId).to.equal(pm.collectionVariables.get('order_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_base_url}}/api/orders/{{order_id}}",
+              "host": ["{{order_service_base_url}}"],
+              "path": ["api", "orders", "{{order_id}}"]
+            },
+            "description": "Retrieves a single order by ID.\n\n**Auth:** any authenticated user\n**Path param:** `{{order_id}}`\n**Response 200:** full order object\n**Response 400:** order not found"
+          }
+        },
+        {
+          "name": "List My Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Orders listed', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_base_url}}/api/orders",
+              "host": ["{{order_service_base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Returns all orders for the authenticated user (derived from the JWT subject).\n\n**Auth:** any authenticated user\n**Response 200:** array of orders"
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order cancelled', () => {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_base_url}}/api/orders/{{order_id}}",
+              "host": ["{{order_service_base_url}}"],
+              "path": ["api", "orders", "{{order_id}}"]
+            },
+            "description": "Cancels an order. Only orders in `CREATED` or `CONFIRMED` state can be cancelled.\n\n**Auth:** any authenticated user\n**Path param:** `{{order_id}}`\n**Response 204:** cancelled successfully\n**Response 400:** order already cancelled, shipped, or delivered"
           }
         }
       ]

@@ -4,6 +4,8 @@ import com.hub.domain.identity.Role;
 import com.hub.domain.identity.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class UserJpaEntity {
 
     @Id
+    @JdbcTypeCode(SqlTypes.BINARY)
     @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 

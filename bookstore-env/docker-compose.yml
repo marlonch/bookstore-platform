@@ -8,6 +8,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
       interval: 10s
@@ -42,6 +43,23 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  bookstore-order-service:
+    build:
+      context: ..
+      dockerfile: bookstore-order-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/orders_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      BOOKSTORE_API_URL: http://bookstore-api:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      bookstore-api:
+        condition: service_started
 
 volumes:
   mysql_data:

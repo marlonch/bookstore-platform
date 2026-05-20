@@ -3,6 +3,7 @@ WORKDIR /workspace
 
 COPY pom.xml .
 COPY bookstore-api/pom.xml bookstore-api/pom.xml
+COPY bookstore-order-service/pom.xml bookstore-order-service/pom.xml
 RUN mvn dependency:go-offline -pl bookstore-api -am -q
 
 COPY bookstore-api/src bookstore-api/src

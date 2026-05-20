@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -41,7 +40,7 @@ public class UserController {
     @PreAuthorize("hasAuthority('ADMINISTRATOR')")
     public ResponseEntity<List<UserResponse>> listUsers() {
         return ResponseEntity.ok(listUsersUseCase.listUsers().stream()
-                .map(userMapper::toResponse).collect(Collectors.toList()));
+                .map(userMapper::toResponse).toList());
     }
 
     @PostMapping
@@ -85,6 +84,6 @@ public class UserController {
         }
 
         return ResponseEntity.ok(listUserBooksUseCase.listUserBooks(new UserId(id)).stream()
-                .map(bookMapper::toResponse).collect(Collectors.toList()));
+                .map(bookMapper::toResponse).toList());
     }
 }
