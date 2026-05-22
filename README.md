@@ -2,6 +2,10 @@
 > Multi-service platform for bookstore catalog and order management.
 > Built with **Java 17 · Spring Boot 4 · Hexagonal Architecture · JWT RS256 · Redis**.
 
+[![CI](https://github.com/marlonch/bookstore-api/actions/workflows/ci.yml/badge.svg)](https://github.com/marlonch/bookstore-api/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=marlonch_bookstore-platform&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=marlonch_bookstore-platform)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=marlonch_bookstore-platform&metric=coverage)](https://sonarcloud.io/summary/new_code?id=marlonch_bookstore-platform)
+
 ![Java](https://img.shields.io/badge/Java-17-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-green)
 ![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange)
@@ -135,6 +139,20 @@ mvn spring-boot:run -pl bookstore-order-service
 
 ---
 
+## CI/CD
+
+Every push and pull request to `main` triggers a GitHub Actions pipeline:
+
+| Step | Command | Purpose |
+|---|---|---|
+| Build, Test & Coverage | `mvn -B verify -Pcoverage` | Compiles, runs all tests, generates JaCoCo coverage report |
+| OWASP Dependency Check | `mvn -B dependency-check:aggregate -Powasp` | Scans dependencies for known CVEs (CVSS ≥ 7 fails the build) |
+| SonarCloud Scan | `mvn -B sonar:sonar` | Uploads coverage and static analysis results to SonarCloud |
+
+The OWASP HTML report is uploaded as a GitHub Actions artifact on every run.
+
+---
+
 ## Running Tests
 
 ```bash
@@ -149,6 +167,12 @@ mvn test -Dtest=OrderControllerIT -pl bookstore-order-service
 
 # Single method
 mvn test -Dtest=OrderControllerIT#createOrder_withValidToken_returns201AndOrder -pl bookstore-order-service
+
+# Generate JaCoCo coverage report (both modules)
+mvn verify -Pcoverage
+
+# Scan dependencies for CVEs
+mvn dependency-check:aggregate -Powasp
 ```
 
 Both services use H2 (in-memory) for integration tests and `@MockitoBean` for external dependencies — no Docker required to run tests.
