@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-analyze:
     name: Build, Test & Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -27,6 +32,13 @@ jobs:
 
       - name: Build, Test & Coverage
         run: mvn -B verify -Pcoverage
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/OWASP/dependency-check/data
+          key: owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: OWASP Dependency Check
         env:
