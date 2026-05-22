@@ -77,7 +77,8 @@
                             <suppressionFiles>
                                 <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                             </suppressionFiles>
-                            <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+                            <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                            <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
                         </configuration>
                     </plugin>
                 </plugins>
