@@ -74,6 +74,9 @@
                         <configuration>
                             <failBuildOnCVSS>7</failBuildOnCVSS>
                             <formats>HTML,JSON</formats>
+                            <suppressionFiles>
+                                <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
                         </configuration>
                     </plugin>
                 </plugins>

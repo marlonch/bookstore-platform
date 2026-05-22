@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+        netty-transport: transitive dependency of spring-boot-starter-webflux (test scope only).
+        Netty is not on the production classpath and these CVEs do not affect the running application.
+    -->
+    <suppress>
+        <filePath regex="true">.*netty-transport.*\.jar</filePath>
+        <cve>CVE-2026-42581</cve>
+        <cve>CVE-2026-42585</cve>
+        <cve>CVE-2026-42584</cve>
+        <cve>CVE-2026-42583</cve>
+        <cve>CVE-2026-42582</cve>
+        <cve>CVE-2026-42578</cve>
+        <cve>CVE-2026-42577</cve>
+        <cve>CVE-2026-42587</cve>
+        <cve>CVE-2026-42586</cve>
+        <cve>CVE-2026-44248</cve>
+        <cve>CVE-2026-42579</cve>
+    </suppress>
+
+    <!--
+        tomcat-embed-core, commons-fileupload, angus-activation: managed by Spring Boot 4.0.6 (latest stable).
+        No patched versions are available within the Spring Boot 4.0.x BOM at this time.
+        Re-evaluate when Spring Boot 4.0.7+ or 4.1.x GA is released.
+    -->
+    <suppress>
+        <filePath regex="true">.*tomcat-embed-core.*\.jar</filePath>
+        <cve>CVE-2026-41293</cve>
+        <cve>CVE-2026-41284</cve>
+        <cve>CVE-2026-43513</cve>
+        <cve>CVE-2026-43512</cve>
+        <cve>CVE-2026-42498</cve>
+        <cve>CVE-2026-43515</cve>
+    </suppress>
+
+    <suppress>
+        <filePath regex="true">.*commons-fileupload.*\.jar</filePath>
+        <cve>CVE-2025-48976</cve>
+    </suppress>
+
+    <suppress>
+        <filePath regex="true">.*angus-activation.*\.jar</filePath>
+        <cve>CVE-2025-7962</cve>
+    </suppress>
+
+</suppressions>
