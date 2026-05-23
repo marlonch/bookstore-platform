@@ -15,7 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Stateless JWT authentication filter for order-service.
@@ -67,8 +66,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return List.of();
         }
         return rolesList.stream()
-                .filter(r -> r instanceof String)
+                .filter(String.class::isInstance)
                 .map(r -> new SimpleGrantedAuthority((String) r))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

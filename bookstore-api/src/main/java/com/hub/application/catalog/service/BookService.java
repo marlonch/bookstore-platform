@@ -27,6 +27,9 @@ import java.util.Objects;
 public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBookUseCase,
         DeleteBookUseCase, ListBooksUseCase, AssignBookToUserUseCase, ListUserBooksUseCase {
 
+    private static final String MSG_COMMAND_NULL = "command must not be null";
+    private static final String MSG_BOOK_NOT_FOUND = "Book not found: ";
+
     private final BookRepositoryPort bookRepository;
     private final StockRepositoryPort stockRepository;
     private final UserRepositoryPort userRepository;
@@ -34,7 +37,7 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
 
     @Override
     public Book createBook(CreateBookCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         if (bookRepository.existsByIsbn(command.isbn())) {
             throw new DuplicateIsbnException("A book with ISBN " + command.isbn().getValue() + " already exists");
         }
@@ -55,14 +58,14 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
     public Book getBook(BookId bookId) {
         Objects.requireNonNull(bookId, "bookId must not be null");
         return bookRepository.findById(bookId)
-                .orElseThrow(() -> new BookNotFoundException("Book not found: " + bookId));
+                .orElseThrow(() -> new BookNotFoundException(MSG_BOOK_NOT_FOUND + bookId));
     }
 
     @Override
     public Book updateBook(UpdateBookCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         Book existing = bookRepository.findById(command.id())
-                .orElseThrow(() -> new BookNotFoundException("Book not found: " + command.id()));
+                .orElseThrow(() -> new BookNotFoundException(MSG_BOOK_NOT_FOUND + command.id()));
 
         return bookRepository.save(Book.existing(
                 command.id(),
@@ -79,7 +82,7 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
     public void deleteBook(BookId bookId) {
         Objects.requireNonNull(bookId, "bookId must not be null");
         if (!bookRepository.existsById(bookId)) {
-            throw new BookNotFoundException("Book not found: " + bookId);
+            throw new BookNotFoundException(MSG_BOOK_NOT_FOUND + bookId);
         }
         bookRepository.deleteById(bookId);
     }
@@ -91,9 +94,9 @@ public class BookService implements CreateBookUseCase, GetBookUseCase, UpdateBoo
 
     @Override
     public Book assignBookToUser(AssignBookCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         Book book = bookRepository.findById(command.bookId())
-                .orElseThrow(() -> new BookNotFoundException("Book not found: " + command.bookId()));
+                .orElseThrow(() -> new BookNotFoundException(MSG_BOOK_NOT_FOUND + command.bookId()));
 
         if (!userRepository.existsById(command.userId())) {
             throw new UserNotFoundException("User not found: " + command.userId());

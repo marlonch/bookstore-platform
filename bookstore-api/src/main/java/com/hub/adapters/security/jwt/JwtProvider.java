@@ -44,7 +44,7 @@ public class JwtProvider implements TokenGeneratorPort {
     private RSAPublicKey publicKey;
 
     @PostConstruct
-    void init() throws Exception {
+    void init() {
         privateKey = loadPrivateKey(privateKeyResource);
         publicKey = loadPublicKey(publicKeyResource);
     }
@@ -92,26 +92,38 @@ public class JwtProvider implements TokenGeneratorPort {
      * Loads an RSA private key from a PKCS#8 PEM resource
      * ({@code -----BEGIN PRIVATE KEY-----}).
      */
-    private RSAPrivateKey loadPrivateKey(Resource resource) throws Exception {
-        byte[] der = decodePem(resource);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        return (RSAPrivateKey) kf.generatePrivate(new PKCS8EncodedKeySpec(der));
+    private RSAPrivateKey loadPrivateKey(Resource resource) {
+        try {
+            byte[] der = decodePem(resource);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPrivateKey) kf.generatePrivate(new PKCS8EncodedKeySpec(der));
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load RSA private key", e);
+        }
     }
 
     /**
      * Loads an RSA public key from an X.509 PEM resource
      * ({@code -----BEGIN PUBLIC KEY-----}).
      */
-    private RSAPublicKey loadPublicKey(Resource resource) throws Exception {
-        byte[] der = decodePem(resource);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        return (RSAPublicKey) kf.generatePublic(new X509EncodedKeySpec(der));
+    private RSAPublicKey loadPublicKey(Resource resource) {
+        try {
+            byte[] der = decodePem(resource);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) kf.generatePublic(new X509EncodedKeySpec(der));
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load RSA public key", e);
+        }
     }
 
     /** Strips PEM headers/footers and decodes the Base64 DER payload. */
-    private byte[] decodePem(Resource resource) throws Exception {
-        String pem = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-        String base64 = pem.replaceAll("-----[^-]+-----", "").replaceAll("\\s", "");
-        return Base64.getDecoder().decode(base64);
+    private byte[] decodePem(Resource resource) {
+        try {
+            String pem = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            String base64 = pem.replaceAll("-----[^-]+-----", "").replaceAll("\\s", "");
+            return Base64.getDecoder().decode(base64);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read PEM resource: " + resource.getFilename(), e);
+        }
     }
 }

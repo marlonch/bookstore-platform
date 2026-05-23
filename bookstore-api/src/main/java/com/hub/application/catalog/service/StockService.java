@@ -19,15 +19,18 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class StockService implements RestockUseCase, ReserveStockUseCase, ReleaseStockUseCase {
 
+    private static final String MSG_COMMAND_NULL = "command must not be null";
+    private static final String MSG_STOCK_NOT_FOUND = "Stock not found for book: ";
+
     private final StockRepositoryPort stockRepository;
     private final TransactionPort transaction;
 
     @Override
     public Stock restock(RestockCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         return transaction.execute(() -> {
             Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
-                    .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
+                    .orElseThrow(() -> new StockNotFoundException(MSG_STOCK_NOT_FOUND + command.bookId()));
             stock.restock(command.quantity());
             return stockRepository.save(stock);
         });
@@ -35,10 +38,10 @@ public class StockService implements RestockUseCase, ReserveStockUseCase, Releas
 
     @Override
     public Stock reserve(ReserveStockCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         return transaction.execute(() -> {
             Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
-                    .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
+                    .orElseThrow(() -> new StockNotFoundException(MSG_STOCK_NOT_FOUND + command.bookId()));
             stock.reserve(command.quantity());
             return stockRepository.save(stock);
         });
@@ -46,10 +49,10 @@ public class StockService implements RestockUseCase, ReserveStockUseCase, Releas
 
     @Override
     public Stock release(ReleaseStockCommand command) {
-        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(command, MSG_COMMAND_NULL);
         return transaction.execute(() -> {
             Stock stock = stockRepository.findByBookIdForUpdate(command.bookId())
-                    .orElseThrow(() -> new StockNotFoundException("Stock not found for book: " + command.bookId()));
+                    .orElseThrow(() -> new StockNotFoundException(MSG_STOCK_NOT_FOUND + command.bookId()));
             stock.release(command.quantity());
             return stockRepository.save(stock);
         });

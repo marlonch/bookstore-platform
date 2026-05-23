@@ -33,7 +33,7 @@ public class JwtValidator {
     private RSAPublicKey publicKey;
 
     @PostConstruct
-    void init() throws Exception {
+    void init() {
         publicKey = loadPublicKey(publicKeyResource);
     }
 
@@ -64,11 +64,15 @@ public class JwtValidator {
      * Loads an RSA public key from an X.509 PEM resource
      * ({@code -----BEGIN PUBLIC KEY-----}).
      */
-    private RSAPublicKey loadPublicKey(Resource resource) throws Exception {
-        String pem = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-        String base64 = pem.replaceAll("-----[^-]+-----", "").replaceAll("\\s", "");
-        byte[] der = Base64.getDecoder().decode(base64);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        return (RSAPublicKey) kf.generatePublic(new X509EncodedKeySpec(der));
+    private RSAPublicKey loadPublicKey(Resource resource) {
+        try {
+            String pem = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            String base64 = pem.replaceAll("-----[^-]+-----", "").replaceAll("\\s", "");
+            byte[] der = Base64.getDecoder().decode(base64);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) kf.generatePublic(new X509EncodedKeySpec(der));
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load RSA public key", e);
+        }
     }
 }

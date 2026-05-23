@@ -54,6 +54,24 @@ class ISBNTest {
     }
 
     @Test
+    void equals_sameReference_returnsTrue() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn).isEqualTo(isbn);
+    }
+
+    @Test
+    void equals_withNull_returnsFalse() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn).isNotEqualTo(null);
+    }
+
+    @Test
+    void equals_withDifferentType_returnsFalse() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn).isNotEqualTo("9780134190440");
+    }
+
+    @Test
     void equals_sameValue_returnsTrue() {
         ISBN a = new ISBN("9780134190440");
         ISBN b = new ISBN("9780134190440");
@@ -71,12 +89,12 @@ class ISBNTest {
     void hashCode_sameValue_equal() {
         ISBN a = new ISBN("9780134190440");
         ISBN b = new ISBN("9780134190440");
-        assertThat(a.hashCode()).isEqualTo(b.hashCode());
+        assertThat(a).hasSameHashCodeAs(b);
     }
 
     @Test
     void toString_returnsNormalizedValue() {
         ISBN isbn = new ISBN("978-0-13-419044-0");
-        assertThat(isbn.toString()).isEqualTo("9780134190440");
+        assertThat(isbn).hasToString("9780134190440");
     }
 }
