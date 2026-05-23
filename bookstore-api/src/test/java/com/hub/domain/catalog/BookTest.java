@@ -2,8 +2,10 @@ package com.hub.domain.catalog;
 
 import com.hub.domain.catalog.book.ISBN;
 import com.hub.domain.catalog.book.Book;
+import com.hub.domain.catalog.book.BookId;
 import com.hub.domain.catalog.book.BookStatus;
 import com.hub.domain.catalog.exception.InvalidBookException;
+import com.hub.domain.identity.UserId;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -85,6 +87,37 @@ class BookTest {
     void createNew_withNullIsbn_throwsInvalidBookException() {
         assertThrows(InvalidBookException.class,
                 () -> Book.createNew("Title", "Author", 2020, VALID_PRICE, null));
+    }
+
+    // --- existing ---
+
+    @Test
+    void existing_withNullId_throwsInvalidBookException() {
+        assertThatThrownBy(() -> Book.existing(null, "Title", "Author", 2020, VALID_PRICE, VALID_ISBN, BookStatus.ACTIVE, null))
+                .isInstanceOf(InvalidBookException.class)
+                .hasMessageContaining("must not be null");
+    }
+
+    @Test
+    void existing_withOwnerId_getOwnerIdReturnsNonEmpty() {
+        UserId ownerId = UserId.generate();
+        Book book = Book.existing(BookId.generate(), "Title", "Author", 2020, VALID_PRICE, VALID_ISBN, BookStatus.ACTIVE, ownerId);
+
+        assertThat(book.getOwnerId()).isPresent().contains(ownerId);
+    }
+
+    @Test
+    void existing_withNullOwnerId_getOwnerIdReturnsEmpty() {
+        Book book = Book.existing(BookId.generate(), "Title", "Author", 2020, VALID_PRICE, VALID_ISBN, BookStatus.ACTIVE, null);
+
+        assertThat(book.getOwnerId()).isEmpty();
+    }
+
+    @Test
+    void existing_withInactiveStatus_preservesStatus() {
+        Book book = Book.existing(BookId.generate(), "Title", "Author", 2020, VALID_PRICE, VALID_ISBN, BookStatus.INACTIVE, null);
+
+        assertThat(book.getStatus()).isEqualTo(BookStatus.INACTIVE);
     }
 
     // --- deactivate ---

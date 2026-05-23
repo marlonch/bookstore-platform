@@ -54,6 +54,24 @@ class ISBNTest {
     }
 
     @Test
+    void equals_sameReference_returnsTrue() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn).isEqualTo(isbn);
+    }
+
+    @Test
+    void equals_withNull_returnsFalse() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn.equals(null)).isFalse();
+    }
+
+    @Test
+    void equals_withDifferentType_returnsFalse() {
+        ISBN isbn = new ISBN("9780134190440");
+        assertThat(isbn.equals("9780134190440")).isFalse();
+    }
+
+    @Test
     void equals_sameValue_returnsTrue() {
         ISBN a = new ISBN("9780134190440");
         ISBN b = new ISBN("9780134190440");

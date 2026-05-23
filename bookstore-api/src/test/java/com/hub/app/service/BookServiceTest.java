@@ -2,6 +2,7 @@ package com.hub.app.service;
 
 import com.hub.application.catalog.book.port.in.command.AssignBookCommand;
 import com.hub.application.catalog.book.port.in.command.CreateBookCommand;
+import com.hub.application.catalog.book.port.in.command.UpdateBookCommand;
 import com.hub.application.catalog.book.port.out.BookRepositoryPort;
 import com.hub.application.catalog.service.BookService;
 import com.hub.application.catalog.stock.port.out.StockRepositoryPort;
@@ -92,6 +93,52 @@ class BookServiceTest {
     void getBook_withMissingId_throwsBookNotFoundException() {
         when(bookRepository.findById(MISSING_ID)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> bookService.getBook(MISSING_ID)).isInstanceOf(BookNotFoundException.class);
+    }
+
+    
+    @Test
+    void updateBook_withNullCommand_throwsNullPointerException() {
+        assertThatThrownBy(() -> bookService.updateBook(null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void updateBook_withMissingId_throwsBookNotFoundException() {
+        when(bookRepository.findById(MISSING_ID)).thenReturn(Optional.empty());
+        UpdateBookCommand cmd = new UpdateBookCommand(MISSING_ID, "New Title", null, null, null);
+
+        assertThatThrownBy(() -> bookService.updateBook(cmd))
+                .isInstanceOf(BookNotFoundException.class);
+    }
+
+    @Test
+    void updateBook_withAllFieldsProvided_updatesAllFields() {
+        Book existing = Book.existing(BOOK_ID, "Old Title", "Old Author", 2000, new BigDecimal("10.00"), ISBN, BookStatus.ACTIVE, null);
+        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateBookCommand cmd = new UpdateBookCommand(BOOK_ID, "New Title", "New Author", 2020, new BigDecimal("49.99"));
+        Book result = bookService.updateBook(cmd);
+
+        assertThat(result.getTitle()).isEqualTo("New Title");
+        assertThat(result.getAuthor()).isEqualTo("New Author");
+        assertThat(result.getPublishedYear()).isEqualTo(2020);
+        assertThat(result.getPrice()).isEqualByComparingTo("49.99");
+    }
+
+    @Test
+    void updateBook_withNullFields_keepsExistingValues() {
+        Book existing = Book.existing(BOOK_ID, "Original Title", "Original Author", 2000, new BigDecimal("10.00"), ISBN, BookStatus.ACTIVE, null);
+        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateBookCommand cmd = new UpdateBookCommand(BOOK_ID, null, null, null, null);
+        Book result = bookService.updateBook(cmd);
+
+        assertThat(result.getTitle()).isEqualTo("Original Title");
+        assertThat(result.getAuthor()).isEqualTo("Original Author");
+        assertThat(result.getPublishedYear()).isEqualTo(2000);
+        assertThat(result.getPrice()).isEqualByComparingTo("10.00");
     }
 
     @Test
