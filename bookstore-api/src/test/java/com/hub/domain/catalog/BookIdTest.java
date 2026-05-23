@@ -50,12 +50,12 @@ class BookIdTest {
     @Test
     void hashCode_sameUuid_isEqual() {
         UUID uuid = UUID.randomUUID();
-        assertThat(new BookId(uuid).hashCode()).isEqualTo(new BookId(uuid).hashCode());
+        assertThat(new BookId(uuid)).hasSameHashCodeAs(new BookId(uuid));
     }
 
     @Test
     void toString_returnsPlainUuidString() {
         UUID uuid = UUID.randomUUID();
-        assertThat(new BookId(uuid).toString()).isEqualTo(uuid.toString());
+        assertThat(new BookId(uuid)).hasToString(uuid.toString());
     }
 }

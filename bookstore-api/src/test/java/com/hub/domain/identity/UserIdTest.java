@@ -48,12 +48,12 @@ class UserIdTest {
     @Test
     void hashCode_sameUuid_isEqual() {
         UUID uuid = UUID.randomUUID();
-        assertThat(new UserId(uuid).hashCode()).isEqualTo(new UserId(uuid).hashCode());
+        assertThat(new UserId(uuid)).hasSameHashCodeAs(new UserId(uuid));
     }
 
     @Test
     void toString_returnsPlainUuidString() {
         UUID uuid = UUID.randomUUID();
-        assertThat(new UserId(uuid).toString()).isEqualTo(uuid.toString());
+        assertThat(new UserId(uuid)).hasToString(uuid.toString());
     }
 }

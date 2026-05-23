@@ -7,12 +7,15 @@ import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.core.io.ByteArrayResource;
+
 import java.lang.reflect.Field;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
 
@@ -102,6 +105,37 @@ class JwtProviderTest {
     void parseClaims_throwsJwtExceptionForInvalidToken() {
         assertThatThrownBy(() -> jwtProvider.parseClaims("bad.token.value"))
                 .isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    void init_withInvalidPrivateKeyResource_throwsIllegalStateException() throws Exception {
+        JwtProvider provider = new JwtProvider();
+        ByteArrayResource badResource = new ByteArrayResource("not!!valid!!base64".getBytes());
+        setFieldOn(provider, "privateKeyResource", badResource);
+        setFieldOn(provider, "publicKeyResource", badResource);
+
+        assertThatThrownBy(provider::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to load RSA private key");
+    }
+
+    @Test
+    void init_withValidPrivateKeyButInvalidPublicKey_throwsIllegalStateException() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair keyPair = kpg.generateKeyPair();
+
+        String privatePem = "-----BEGIN PRIVATE KEY-----\n"
+                + Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(keyPair.getPrivate().getEncoded())
+                + "\n-----END PRIVATE KEY-----";
+
+        JwtProvider provider = new JwtProvider();
+        setFieldOn(provider, "privateKeyResource", new ByteArrayResource(privatePem.getBytes()));
+        setFieldOn(provider, "publicKeyResource", new ByteArrayResource("not!!valid!!base64".getBytes()));
+
+        assertThatThrownBy(provider::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to load RSA public key");
     }
 
     private String generate(String username) {

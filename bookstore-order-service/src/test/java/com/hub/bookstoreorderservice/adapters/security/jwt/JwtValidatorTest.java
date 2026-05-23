@@ -6,6 +6,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -97,6 +98,16 @@ class JwtValidatorTest {
     void parseClaims_returnsNonEmptyJti() {
         Claims claims = validator.parseClaims(TestJwtFactory.token("alice", "ROLE_USER"));
         assertThat(claims.getId()).isNotBlank();
+    }
+
+    @Test
+    void init_withInvalidPublicKeyResource_throwsIllegalStateException() {
+        JwtValidator v = new JwtValidator();
+        ReflectionTestUtils.setField(v, "publicKeyResource", new ByteArrayResource("not!!valid!!base64".getBytes()));
+
+        assertThatThrownBy(v::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to load RSA public key");
     }
 
     @Test
