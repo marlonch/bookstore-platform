@@ -12,7 +12,7 @@ public final class ISBN {
         if (raw == null) {
             throw new InvalidBookException("ISBN must not be null");
         }
-        String digits = raw.replaceAll("[^0-9]", "");
+        String digits = raw.replaceAll("\\D", "");
         if (digits.length() != 13) {
             throw new InvalidBookException("ISBN must be 13 digits");
         }
